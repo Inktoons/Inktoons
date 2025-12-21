@@ -38,8 +38,8 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                         window.location.hostname.includes("ngrok-free.dev") ||
                         window.location.hostname.includes("ngrok.io");
 
-                    // Solo activar sandbox si estamos en desarrollo Y NO estamos dentro del Pi Browser
-                    const useSandbox = isLocal && !isPiBrowser;
+                    // Usar sandbox siempre que estemos en un dominio local o de desarrollo (ngrok)
+                    const useSandbox = isLocal;
 
                     console.log(`Initializing Pi SDK (PiBrowser: ${isPiBrowser}, Local: ${isLocal}, useSandbox: ${useSandbox})...`);
 
@@ -101,19 +101,21 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
     const createPayment = async (amount: number, memo: string, metadata: any) => {
         if (!window.Pi) {
-            console.error("Pi SDK not found for payment");
+            alert("SDK de Pi no encontrado. Prueba a recargar la página.");
             return;
         }
 
         try {
-            console.log("Initiating payment of", amount, "Pi...");
+            console.log("Iniciando pago:", { amount, memo, metadata });
+            // alert("Iniciando pago... Espera a que cargue la ventana de Pi.");
+
             await window.Pi.createPayment({
                 amount,
                 memo,
                 metadata,
             }, {
                 onReadyForServerApproval: async (paymentId: string) => {
-                    console.log("Payment ready for server approval:", paymentId);
+                    console.log("Pago listo para aprobación del servidor:", paymentId);
                     try {
                         const response = await fetch("/api/pi/approve", {
                             method: "POST",
@@ -121,16 +123,18 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                             body: JSON.stringify({ paymentId }),
                         });
                         if (response.ok) {
-                            console.log("Payment approved by server");
+                            console.log("Pago aprobado en el servidor");
                         } else {
-                            console.error("Failed to approve payment on server");
+                            const errorText = await response.text();
+                            alert("Error al aprobar pago: " + errorText);
                         }
                     } catch (error) {
-                        console.error("Error approving payment:", error);
+                        console.error("Error en aprobación:", error);
+                        alert("Error de conexión al aprobar págó.");
                     }
                 },
                 onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                    console.log("Payment ready for server completion:", paymentId, txid);
+                    console.log("Pago listo para completarse:", paymentId, txid);
                     try {
                         const response = await fetch("/api/pi/complete", {
                             method: "POST",
@@ -138,24 +142,27 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                             body: JSON.stringify({ paymentId, txid }),
                         });
                         if (response.ok) {
-                            console.log("Payment completed by server");
-                            alert("¡Pago realizado con éxito!");
+                            console.log("Pago completado!");
+                            alert("¡Propina enviada con éxito! Gracias por tu apoyo.");
                         } else {
-                            console.error("Failed to complete payment on server");
+                            const errorText = await response.text();
+                            alert("Error al completar pago: " + errorText);
                         }
                     } catch (error) {
-                        console.error("Error completing payment:", error);
+                        console.error("Error en finalización:", error);
                     }
                 },
                 onCancel: (paymentId: string) => {
-                    console.log("Payment cancelled:", paymentId);
+                    console.log("Pago cancelado:", paymentId);
                 },
                 onError: (error: any, payment: any) => {
-                    console.error("Payment error:", error, payment);
+                    console.error("Error en el pago:", error, payment);
+                    alert("Error en el sistema de pagos: " + (error.message || error));
                 },
             });
         } catch (error) {
-            console.error("Error creating payment:", error);
+            console.error("Error crítico al crear pago:", error);
+            alert("Error crítico al iniciar el pago.");
         }
     };
 
