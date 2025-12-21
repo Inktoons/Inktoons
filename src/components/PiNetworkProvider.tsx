@@ -35,6 +35,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     const isSandbox = window.location.hostname === "localhost" ||
                         window.location.hostname === "127.0.0.1" ||
                         window.location.hostname.includes("ngrok-free.app") ||
+                        window.location.hostname.includes("ngrok-free.dev") ||
                         window.location.hostname.includes("ngrok.io");
 
                     console.log(`Initializing Pi SDK (Sandbox: ${isSandbox})...`);
