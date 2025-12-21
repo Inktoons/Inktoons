@@ -75,9 +75,18 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             console.log("Starting Pi authentication...");
             const scopes = ["username", "payments", "wallet_address"];
 
-            const onIncompletePaymentFound = (payment: any) => {
+            const onIncompletePaymentFound = async (payment: any) => {
                 console.log("Incomplete payment found during auth:", payment);
-                // Aquí se podría implementar la lógica para completar pagos pendientes
+                try {
+                    await fetch("/api/pi/complete", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction.txid }),
+                    });
+                    console.log("Incomplete payment resolved");
+                } catch (error) {
+                    console.error("Error resolving incomplete payment:", error);
+                }
             };
 
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
@@ -103,13 +112,40 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                 memo,
                 metadata,
             }, {
-                onReadyForServerApproval: (paymentId: string) => {
+                onReadyForServerApproval: async (paymentId: string) => {
                     console.log("Payment ready for server approval:", paymentId);
-                    // Aquí deberías llamar a tu backend para aprobar el pago
+                    try {
+                        const response = await fetch("/api/pi/approve", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ paymentId }),
+                        });
+                        if (response.ok) {
+                            console.log("Payment approved by server");
+                        } else {
+                            console.error("Failed to approve payment on server");
+                        }
+                    } catch (error) {
+                        console.error("Error approving payment:", error);
+                    }
                 },
-                onReadyForServerCompletion: (paymentId: string, txid: string) => {
+                onReadyForServerCompletion: async (paymentId: string, txid: string) => {
                     console.log("Payment ready for server completion:", paymentId, txid);
-                    // Aquí deberías llamar a tu backend para completar el pago
+                    try {
+                        const response = await fetch("/api/pi/complete", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ paymentId, txid }),
+                        });
+                        if (response.ok) {
+                            console.log("Payment completed by server");
+                            alert("¡Pago realizado con éxito!");
+                        } else {
+                            console.error("Failed to complete payment on server");
+                        }
+                    } catch (error) {
+                        console.error("Error completing payment:", error);
+                    }
                 },
                 onCancel: (paymentId: string) => {
                     console.log("Payment cancelled:", paymentId);
