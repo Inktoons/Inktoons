@@ -31,16 +31,19 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         const initPi = async () => {
             try {
                 if (window.Pi) {
-                    // Determinar si estamos en entorno de desarrollo (localhost o ngrok)
-                    const isSandbox = window.location.hostname === "localhost" ||
+                    const isPiBrowser = /PiBrowser/i.test(navigator.userAgent);
+                    const isLocal = window.location.hostname === "localhost" ||
                         window.location.hostname === "127.0.0.1" ||
                         window.location.hostname.includes("ngrok-free.app") ||
                         window.location.hostname.includes("ngrok-free.dev") ||
                         window.location.hostname.includes("ngrok.io");
 
-                    console.log(`Initializing Pi SDK (Sandbox: ${isSandbox})...`);
+                    // Solo activar sandbox si estamos en desarrollo Y NO estamos dentro del Pi Browser
+                    const useSandbox = isLocal && !isPiBrowser;
 
-                    window.Pi.init({ version: "2.0", sandbox: isSandbox });
+                    console.log(`Initializing Pi SDK (PiBrowser: ${isPiBrowser}, Local: ${isLocal}, useSandbox: ${useSandbox})...`);
+
+                    window.Pi.init({ version: "2.0", sandbox: useSandbox });
                     console.log("Pi SDK initialized successfully");
                 } else {
                     console.warn("Pi SDK (window.Pi) not found during initialization");
