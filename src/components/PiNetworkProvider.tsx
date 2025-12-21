@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 interface PiUser {
     uid: string;
     username: string;
+    wallet_address?: string;
 }
 
 interface PiContextType {
@@ -30,8 +31,18 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         const initPi = async () => {
             try {
                 if (window.Pi) {
-                    window.Pi.init({ version: "2.0", sandbox: true });
-                    console.log("Pi SDK initialized with API Key detection:", !!process.env.NEXT_PUBLIC_PI_API_KEY);
+                    // Determinar si estamos en entorno de desarrollo (localhost o ngrok)
+                    const isSandbox = window.location.hostname === "localhost" ||
+                        window.location.hostname === "127.0.0.1" ||
+                        window.location.hostname.includes("ngrok-free.app") ||
+                        window.location.hostname.includes("ngrok.io");
+
+                    console.log(`Initializing Pi SDK (Sandbox: ${isSandbox})...`);
+
+                    window.Pi.init({ version: "2.0", sandbox: isSandbox });
+                    console.log("Pi SDK initialized successfully");
+                } else {
+                    console.warn("Pi SDK (window.Pi) not found during initialization");
                 }
             } catch (error) {
                 console.error("Error initializing Pi SDK:", error);
@@ -40,12 +51,19 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             }
         };
 
-        initPi();
+        // Dar un pequeño margen para que el script se cargue si no está inmediatamente disponible
+        if (window.Pi) {
+            initPi();
+        } else {
+            const timer = setTimeout(initPi, 1000);
+            return () => clearTimeout(timer);
+        }
     }, []);
 
     const authenticate = async () => {
         if (!window.Pi) {
             console.error("Pi SDK not found on window");
+            alert("El SDK de Pi no se ha cargado. Abre esta app desde el Pi Browser.");
             return;
         }
 
@@ -55,7 +73,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
             const onIncompletePaymentFound = (payment: any) => {
                 console.log("Incomplete payment found during auth:", payment);
-                // Aquí podrías implementar la lógica para completar o cancelar el pago pendiente
+                // Aquí se podría implementar la lógica para completar pagos pendientes
             };
 
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
@@ -63,14 +81,19 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             setUser(auth.user);
         } catch (error) {
             console.error("Authentication failed:", error);
-            alert("Error al conectar con Pi Network. Asegúrate de estar dentro del Pi Browser.");
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            alert("Error al conectar con Pi Network: " + errorMessage + "\n\nTip: Asegúrate de estar dentro del Pi Browser y que la URL coincida con la configurada en el Developer Portal.");
         }
     };
 
     const createPayment = async (amount: number, memo: string, metadata: any) => {
-        if (!window.Pi) return;
+        if (!window.Pi) {
+            console.error("Pi SDK not found for payment");
+            return;
+        }
 
         try {
+            console.log("Initiating payment of", amount, "Pi...");
             await window.Pi.createPayment({
                 amount,
                 memo,
@@ -78,9 +101,11 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             }, {
                 onReadyForServerApproval: (paymentId: string) => {
                     console.log("Payment ready for server approval:", paymentId);
+                    // Aquí deberías llamar a tu backend para aprobar el pago
                 },
                 onReadyForServerCompletion: (paymentId: string, txid: string) => {
                     console.log("Payment ready for server completion:", paymentId, txid);
+                    // Aquí deberías llamar a tu backend para completar el pago
                 },
                 onCancel: (paymentId: string) => {
                     console.log("Payment cancelled:", paymentId);

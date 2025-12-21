@@ -10,7 +10,7 @@ import { Search, Bell, Menu, User, Zap, Star, TrendingUp, Clock } from "lucide-r
 
 export default function Home() {
   const router = useRouter();
-  const { user, authenticate } = usePi();
+  const { user, authenticate, loading } = usePi();
   const [activeTab, setActiveTab] = useState("Spotlight");
 
   const categories = ["Spotlight", "Diario", "Nuevo", "Popular", "Gratis", "WUF", "Completado"];
@@ -45,7 +45,13 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <button onClick={authenticate} className="btn-tapas text-sm shadow-sm">Conectar Pi</button>
+            <button
+              onClick={authenticate}
+              disabled={loading}
+              className={`btn-tapas text-sm shadow-sm ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {loading ? "Cargando..." : "Conectar Pi"}
+            </button>
           )}
           <button className="lg:hidden p-2 text-gray-500"><Menu size={24} /></button>
         </div>
