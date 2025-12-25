@@ -3,9 +3,15 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
     try {
         const { paymentId } = await request.json();
-        const apiKey = process.env.PI_API_KEY;
+        const apiKey = process.env.PI_API_KEY?.trim();
 
-        console.log("Approve request for paymentId:", paymentId);
+        if (!apiKey) {
+            console.error("PI_API_KEY is missing in environment variables");
+            return NextResponse.json({ error: "Server configuration error: Missing API Key" }, { status: 500 });
+        }
+
+        console.log(`Approve request for paymentId: ${paymentId}`);
+        console.log(`API Key loaded | Length: ${apiKey.length} | Prefix: ${apiKey.substring(0, 4)}...`);
 
         const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
             method: "POST",
@@ -16,9 +22,16 @@ export async function POST(request: Request) {
         });
 
         if (!response.ok) {
-            const error = await response.text();
-            console.error("Pi API Approve Error:", error);
-            return NextResponse.json({ error }, { status: response.status });
+            const errorText = await response.text();
+            console.error("Pi API Approve Error:", errorText);
+
+            // Si ya está aprobado, devolvemos éxito para no bloquear el flujo
+            if (errorText.includes("already_approved")) {
+                console.log("Payment was already approved.");
+                return NextResponse.json({ success: true, message: "Already approved" });
+            }
+
+            return NextResponse.json({ error: errorText }, { status: response.status });
         }
 
         const data = await response.json();

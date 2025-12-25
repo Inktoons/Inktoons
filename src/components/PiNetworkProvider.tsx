@@ -12,7 +12,7 @@ interface PiContextType {
     user: PiUser | null;
     loading: boolean;
     authenticate: () => Promise<void>;
-    createPayment: (amount: number, memo: string, metadata: any) => Promise<void>;
+    createPayment: (amount: number, memo: string, metadata: any, onSuccess?: () => void) => Promise<void>;
 }
 
 const PiContext = createContext<PiContextType | undefined>(undefined);
@@ -99,7 +99,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         }
     };
 
-    const createPayment = async (amount: number, memo: string, metadata: any) => {
+    const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
         if (!window.Pi) {
             alert("SDK de Pi no encontrado. Prueba a recargar la página.");
             return;
@@ -143,7 +143,11 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                         });
                         if (response.ok) {
                             console.log("Pago completado!");
-                            alert("¡Propina enviada con éxito! Gracias por tu apoyo.");
+                            if (onSuccess) {
+                                onSuccess();
+                            } else {
+                                alert("¡Pago completado con éxito!");
+                            }
                         } else {
                             const errorText = await response.text();
                             alert("Error al completar pago: " + errorText);

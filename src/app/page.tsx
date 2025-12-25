@@ -6,12 +6,46 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { usePi } from "@/components/PiNetworkProvider";
 import { mockNews } from "@/data/mockNews";
-import { Search, Bell, Menu, User, Zap, Star, TrendingUp, Clock } from "lucide-react";
+import { useContent } from "@/context/ContentContext";
+import { Search, Bell, Menu, User, Zap, Star, TrendingUp, Clock, Home as HomeIcon, BookOpen, Upload } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
   const { user, authenticate, loading } = usePi();
-  const [activeTab, setActiveTab] = useState("Spotlight");
+  const { webtoons } = useContent();
+  const [activeTab, setActiveTab] = useState("Nuevo"); // Changed default to "Nuevo"
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const displayWebtoons = [...webtoons, ...mockNews.filter(m => !webtoons.some(w => w.id === m.id))];
+
+  // Dynamic filtering based on activeTab
+  const filteredWebtoons = (() => {
+    if (activeTab === "Nuevo") {
+      // Prioritize recently created ones
+      return [...displayWebtoons].sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+    }
+    if (activeTab === "Popular") {
+      // Sort by votes (simulated for mock)
+      return [...displayWebtoons].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    }
+    if (activeTab === "Gratis") {
+      return displayWebtoons.slice().reverse(); // Just a variation
+    }
+    // Spotlight/Default
+    return displayWebtoons;
+  })();
+
+  const handleProtectedNavigation = (path: string) => {
+    if (user) {
+      router.push(path);
+    } else {
+      setShowLoginModal(true);
+    }
+  };
 
   const categories = ["Spotlight", "Diario", "Nuevo", "Popular", "Gratis", "WUF", "Completado"];
 
@@ -39,8 +73,18 @@ export default function Home() {
 
           {user ? (
             <div className="flex items-center gap-3">
+
+              <button
+                onClick={() => router.push('/wallet')}
+                className="p-2 text-pi-purple hover:bg-purple-50 rounded-full transition-colors"
+              >
+                <Zap size={20} fill="currentColor" />
+              </button>
               <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"><Bell size={20} /></button>
-              <div className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white cursor-pointer">
+              <div
+                onClick={() => router.push("/profile")}
+                className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white cursor-pointer shadow-sm active:scale-95 transition-transform"
+              >
                 <User size={16} />
               </div>
             </div>
@@ -58,60 +102,17 @@ export default function Home() {
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 py-6">
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-6 no-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveTab(cat)}
-              className={`px-6 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === cat ? "pill-active shadow-md" : "pill-inactive hover:bg-gray-50"
-                }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Hero Spotlight Grid */}
-        <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-12">
-          {[
-            { label: "EVENTO HOY", color: "from-purple-900/80 to-purple-600/80", img: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=300&q=80" },
-            { label: "NOVELAS PI", color: "from-indigo-900/80 to-indigo-600/80", img: "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=300&q=80" },
-            { label: "TOP SEMANA", color: "from-gray-900/80 to-gray-700/80", img: "https://images.unsplash.com/photo-1438183972690-6d4658e3290e?auto=format&fit=crop&w=300&q=80" },
-            { label: "NUEVAS", color: "from-blue-900/80 to-blue-600/80", img: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?auto=format&fit=crop&w=300&q=80" },
-            { label: "OFERTAS", color: "from-black/80 to-zinc-800/80", img: "https://images.unsplash.com/photo-1518458028785-8fbcd101ebb9?auto=format&fit=crop&w=300&q=80" },
-            { label: "DESTACADOS", color: "from-cyan-900/80 to-cyan-600/80", img: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=300&q=80" },
-            { label: "BENEFICIOS", color: "from-blue-700/80 to-blue-400/80", img: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=300&q=80" },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="relative h-24 rounded-xl flex items-center justify-center p-3 text-center cursor-pointer hover:scale-[1.02] transition-all overflow-hidden shadow-sm group"
-            >
-              <Image
-                src={item.img}
-                alt={item.label}
-                fill
-                className="object-cover group-hover:scale-110 transition-transform duration-500"
-              />
-              <div className={`absolute inset-0 bg-gradient-to-br ${item.color} mix-blend-multiply`} />
-              <span className="relative z-10 text-[11px] font-black text-white tracking-widest leading-tight drop-shadow-md">
-                {item.label}
-              </span>
-            </div>
-          ))}
-        </section>
-
         {/* Promo Banner */}
-        <section className="mb-12">
-          <div className="bg-gradient-to-r from-pi-gold via-yellow-400 to-pi-gold-dark rounded-xl p-8 flex flex-col md:flex-row items-center justify-between overflow-hidden relative group cursor-pointer shadow-lg">
+        <section className="mb-12 mt-4">
+          <div className="bg-gradient-to-r from-purple-900 via-purple-700 to-indigo-900 rounded-xl p-8 flex flex-col md:flex-row items-center justify-between overflow-hidden relative group cursor-pointer shadow-lg">
             <div className="z-10 text-center md:text-left">
-              <span className="bg-black/10 px-3 py-1 rounded-full text-[10px] font-bold mb-4 inline-block">¿NUEVO EN INKTOONS?</span>
-              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Gana tu primer Pi leyendo cómics</h2>
-              <p className="text-white/80 font-bold">Completa misiones diarias y desbloquea contenido premium.</p>
+              <button onClick={() => router.push('/wallet')} className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold mb-4 inline-block hover:bg-white/30 transition-colors text-white">ECONOMÍA INKTOONS</button>
+              <h2 className="text-3xl font-black text-white mb-2 leading-tight">¡Acumula Inks y desbloquea historias épicas!</h2>
+              <p className="text-white/80 font-bold">Completa misiones, lee capítulos y canjea tus Inks por contenido exclusivo.</p>
             </div>
             <div className="mt-6 md:mt-0 z-10">
-              <button className="bg-white text-black px-8 py-3 rounded-full font-black hover:scale-105 transition-transform shadow-xl">
-                EMPEZAR AHORA
+              <button onClick={() => router.push('/wallet')} className="bg-white text-black px-8 py-3 rounded-full font-black hover:scale-105 transition-transform shadow-xl">
+                GANAR INKS
               </button>
             </div>
             {/* Background elements */}
@@ -124,13 +125,13 @@ export default function Home() {
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-black flex items-center gap-2">
-              ✨ Destacados de Inktoons 2025 ✨
+              {activeTab === "Nuevo" ? "🌱 Recién Llegados 🌱" : activeTab === "Popular" ? "🔥 Lo más Leído 🔥" : "✨ Destacados de Inktoons 2025 ✨"}
             </h3>
             <button className="text-gray-400 hover:text-black font-bold text-sm transition-colors">Ver más</button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-4">
-            {mockNews.map((item, i) => (
+            {filteredWebtoons.map((item, i) => (
               <motion.div
                 key={item.id}
                 whileHover={{ y: -5 }}
@@ -176,7 +177,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {mockNews.slice(0, 2).map((item) => (
+            {displayWebtoons.slice(0, 4).map((item) => (
               <div
                 key={item.id}
                 className="bg-white rounded-xl p-4 flex gap-4 border border-gray-100 hover:border-pi-purple/30 transition-all cursor-pointer group shadow-sm hover:shadow-md"
@@ -239,13 +240,64 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Mobile Bottom Nav */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl rounded-full shadow-2xl border border-gray-100 px-8 py-3 flex items-center gap-10 z-50">
-        <button className="text-pi-purple transition-transform active:scale-90"><Menu size={24} /></button>
-        <button className="text-gray-400 transition-transform active:scale-90"><Search size={24} /></button>
-        <button className="text-gray-400 transition-transform active:scale-90"><Star size={24} /></button>
-        <button className="text-gray-400 transition-transform active:scale-90"><Clock size={24} /></button>
-      </div>
+      {/* Mobile Bottom Nav style matching the reference */}
+      <nav className="fixed bottom-0 left-0 right-0 lg:hidden bg-white/80 backdrop-blur-xl border-t border-gray-100 px-8 py-4 flex items-center justify-between z-50">
+        <button onClick={() => router.push("/")} className="text-pi-purple transition-all flex flex-col items-center gap-1">
+          <HomeIcon size={24} />
+          <span className="text-[10px] font-bold">Inicio</span>
+        </button>
+        <button onClick={() => router.push("/explore")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+          <Search size={24} />
+          <span className="text-[10px] font-bold">Explorar</span>
+        </button>
+        <button onClick={() => handleProtectedNavigation("/upload")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+          <Upload size={24} />
+          <span className="text-[10px] font-bold">Subir</span>
+        </button>
+        <button onClick={() => handleProtectedNavigation("/library")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+          <BookOpen size={24} />
+          <span className="text-[10px] font-bold">Biblioteca</span>
+        </button>
+        <button onClick={() => handleProtectedNavigation("/profile")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+          <User size={24} />
+          <span className="text-[10px] font-bold">Perfil</span>
+        </button>
+      </nav>
+      {/* Safe area spacer for bottom nav */}
+      <div className="lg:hidden h-24" />
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-pi-purple/10 text-pi-purple rounded-full flex items-center justify-center mx-auto mb-4">
+              <User size={32} />
+            </div>
+            <h3 className="text-xl font-black mb-2">Inicia sesión</h3>
+            <p className="text-gray-500 mb-6 text-sm">
+              Necesitas conectar tu cuenta de Pi Network para acceder a esta sección.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  authenticate();
+                  setShowLoginModal(false);
+                }}
+                disabled={loading}
+                className="w-full py-3 bg-pi-purple text-white font-bold rounded-xl hover:bg-pi-purple-dark transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? "Cargando..." : "Conectar Pi"}
+              </button>
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="w-full py-3 text-gray-400 font-bold hover:text-black transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

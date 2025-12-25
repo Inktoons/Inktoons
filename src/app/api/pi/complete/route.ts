@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
     try {
         const { paymentId, txid } = await request.json();
-        const apiKey = process.env.PI_API_KEY;
+        const apiKey = process.env.PI_API_KEY?.trim();
 
         console.log("Complete request for paymentId:", paymentId, "txid:", txid);
 
@@ -17,9 +17,16 @@ export async function POST(request: Request) {
         });
 
         if (!response.ok) {
-            const error = await response.text();
-            console.error("Pi API Complete Error:", error);
-            return NextResponse.json({ error }, { status: response.status });
+            const errorText = await response.text();
+            console.error("Pi API Complete Error:", errorText);
+
+            // Si el error es que ya está completado, lo tratamos como éxito para el usuario
+            if (errorText.includes("already_completed")) {
+                console.log("Payment was already completed, treating as success.");
+                return NextResponse.json({ success: true, message: "Already completed" });
+            }
+
+            return NextResponse.json({ error: errorText }, { status: response.status });
         }
 
         const data = await response.json();

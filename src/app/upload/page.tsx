@@ -1,0 +1,699 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+    ArrowLeft, Image as ImageIcon, Upload, X, Check, Lock,
+    Coins, Calendar, Eye, AlertCircle, Loader2, Trash2, Edit3, Keyboard,
+    ChevronUp, ChevronDown, Plus, Play
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
+import { usePi } from "@/components/PiNetworkProvider";
+
+interface CustomPromptProps {
+    isOpen: boolean;
+    title: string;
+    value: string;
+    onConfirm: (val: string) => void;
+    onCancel: () => void;
+}
+
+function CustomPrompt({ isOpen, title, value, onConfirm, onCancel }: CustomPromptProps) {
+    const [tempValue, setTempValue] = useState(value);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            setTempValue(value);
+            // Intentar auto-foco
+            setTimeout(() => inputRef.current?.focus(), 300);
+        }
+    }, [isOpen, value]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                className="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl"
+            >
+                <div className="p-8 space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-black text-gray-800 tracking-tight">{title}</h3>
+                        <button onClick={onCancel} className="p-2 bg-gray-100 rounded-full text-gray-400">
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div className="relative">
+                        <textarea
+                            ref={(el) => {
+                                // @ts-ignore
+                                inputRef.current = el;
+                            }}
+                            className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-lg font-bold text-black focus:border-pi-purple focus:bg-white outline-none transition-all min-h-[150px] resize-none"
+                            value={tempValue}
+                            onChange={(e) => setTempValue(e.target.value)}
+                            placeholder="Escribe aquí..."
+                            autoComplete="off"
+                        />
+                        {/* Botón de ayuda para forzar teclado si falla el auto-focussing */}
+                        <button
+                            onClick={() => inputRef.current?.focus()}
+                            className="absolute right-4 top-4 text-pi-purple/30"
+                        >
+                            <Keyboard size={20} />
+                        </button>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={onCancel}
+                            className="flex-1 py-4 bg-gray-100 text-gray-500 font-black rounded-2xl hover:bg-gray-200 transition-colors"
+                        >
+                            CANCELAR
+                        </button>
+                        <button
+                            onClick={() => onConfirm(tempValue)}
+                            className="flex-1 py-4 bg-pi-purple text-white font-black rounded-2xl shadow-lg shadow-pi-purple/20 active:scale-95 transition-all"
+                        >
+                            ACEPTAR
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+export default function UploadPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const webtoonIdFromQuery = searchParams.get("webtoonId");
+    const chapterIdFromQuery = searchParams.get("chapterId"); // New for edit mode
+
+    const { webtoons, addWebtoon, addChapter, updateChapter } = useContent();
+    const { user } = usePi();
+
+    const isEditMode = !!chapterIdFromQuery;
+
+    const [activeTab, setActiveTab] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+
+    // Prompt States
+    const [promptConfig, setPromptConfig] = useState<{ isOpen: boolean; title: string; field: string; value: string }>({
+        isOpen: false,
+        title: "",
+        field: "",
+        value: ""
+    });
+
+    // Tab 1: Webtoon Info
+    const [title, setTitle] = useState("");
+    const [language, setLanguage] = useState("Español");
+    const [author, setAuthor] = useState(user?.username || "");
+    const [artist, setArtist] = useState("");
+    const [alternatives, setAlternatives] = useState("");
+    const [status, setStatus] = useState("ongoing");
+    const [year, setYear] = useState(new Date().getFullYear().toString());
+    const [coverImage, setCoverImage] = useState<string | null>(null);
+    const [bannerImage, setBannerImage] = useState<string | null>(null);
+    const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+    const [description, setDescription] = useState("");
+
+    // Tab 2: Chapter Info
+    const [selectedWebtoonId, setSelectedWebtoonId] = useState<string>("");
+    const [chapterTitle, setChapterTitle] = useState("");
+    const [isMonetized, setIsMonetized] = useState(false);
+    const [chapterPages, setChapterPages] = useState<string[]>([]);
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+    const movePage = (index: number, direction: 'up' | 'down') => {
+        const newPages = [...chapterPages];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= newPages.length) return;
+
+        const temp = newPages[index];
+        newPages[index] = newPages[targetIndex];
+        newPages[targetIndex] = temp;
+        setChapterPages(newPages);
+    };
+
+    const deletePage = (index: number) => {
+        setChapterPages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    useEffect(() => {
+        if (user?.username) {
+            setAuthor(user.username);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (webtoonIdFromQuery) {
+            setSelectedWebtoonId(webtoonIdFromQuery);
+            setActiveTab(2);
+
+            // If we have a chapterId, load its data
+            if (chapterIdFromQuery) {
+                const targetWebtoon = webtoons.find(w => w.id === webtoonIdFromQuery);
+                const targetChapter = targetWebtoon?.chapters.find(c => c.id === chapterIdFromQuery);
+                if (targetChapter) {
+                    setChapterTitle(targetChapter.title);
+                    setChapterPages(targetChapter.images || []);
+                    setIsMonetized(targetChapter.isLocked);
+                }
+            }
+        }
+    }, [webtoonIdFromQuery, chapterIdFromQuery, webtoons]);
+
+    // Handle Custom Prompt
+    const openPrompt = (label: string, field: string, value: string) => {
+        setPromptConfig({ isOpen: true, title: `Introduce ${label}`, field, value });
+    };
+
+    const handlePromptConfirm = (val: string) => {
+        if (promptConfig.field === "title") setTitle(val);
+        if (promptConfig.field === "author") setAuthor(val);
+        if (promptConfig.field === "artist") setArtist(val);
+        if (promptConfig.field === "alternatives") setAlternatives(val);
+        if (promptConfig.field === "year") setYear(val);
+        if (promptConfig.field === "chapterTitle") setChapterTitle(val);
+        if (promptConfig.field === "description") setDescription(val);
+        setPromptConfig({ ...promptConfig, isOpen: false });
+    };
+
+    // Refs for file inputs
+    const coverInputRef = useRef<HTMLInputElement>(null);
+    const bannerInputRef = useRef<HTMLInputElement>(null);
+    const pagesInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'banner' | 'pages') => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        if (type === 'pages') {
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setChapterPages(prev => [...prev, reader.result as string]);
+                };
+                reader.readAsDataURL(file);
+            });
+        } else {
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                if (type === 'cover') setCoverImage(reader.result as string);
+                else setBannerImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const genres = [
+        "4-Koma", "Acción", "Adulto", "Aventuras", "Apocalíptico", "Ciencia Ficción", "Comedia", "Cotidiano",
+        "Delincuentes", "Demonios", "Deportes", "Drama", "Escolar", "Fantasía", "Gender Bender", "Gore",
+        "Harén", "Hentai", "Histórico", "Horror", "Josei", "Karate", "Maduro", "Mafia", "Magia",
+        "Manwha", "Martial", "Mecha", "Militar", "Música", "Mystery", "Omegaverse", "One Shot",
+        "Parodia", "Policial", "Psicológico", "Realidad Virtual", "Reencarnación", "Romance",
+        "Samurai", "Sci-Fi", "Seinen", "Shojo", "Shonen", "Slice of Life", "Smut", "Sports",
+        "Super Natural", "Super Poderes", "Supervivencia", "Suspense", "Terror", "Thriller",
+        "Tragedia", "Vampiros", "Webcomic", "Webtoon", "Yaoi", "Yuri"
+    ];
+
+    const handleSubmitWebtoon = async () => {
+        if (!title || !coverImage) {
+            alert("Rellena título y portada.");
+            return;
+        }
+        setIsSubmitting(true);
+        await new Promise(r => setTimeout(r, 1500));
+        const id = Math.random().toString(36).substr(2, 9);
+        const webtoon: Webtoon = {
+            id, title, excerpt: description || alternatives || "Nueva historia.",
+            category: selectedGenres[0] || "Acción",
+            date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
+            author: author || "Creador",
+            imageUrl: coverImage,
+            bannerUrl: bannerImage || undefined,
+            status: status as any,
+            genres: selectedGenres,
+            chapters: [],
+            artist: artist || "Desconocido",
+            year: year,
+            language: language,
+            alternatives: alternatives,
+            rating: 0,
+            votes: 0
+        };
+        await addWebtoon(webtoon);
+        setSelectedWebtoonId(id);
+        setIsSubmitting(false);
+        setIsSuccess(true);
+        setTimeout(() => { setIsSuccess(false); setActiveTab(2); }, 2000);
+    };
+
+    const handleSubmitChapter = async () => {
+        if (!chapterTitle || !selectedWebtoonId) {
+            alert("Título del capítulo necesario.");
+            return;
+        }
+
+        const targetWebtoon = webtoons.find(w => w.id === selectedWebtoonId);
+        if (!targetWebtoon) return;
+
+        setIsSubmitting(true);
+        await new Promise(r => setTimeout(r, 1500));
+
+        if (isEditMode && chapterIdFromQuery) {
+            // EDITING EXISTING CHAPTER
+            await updateChapter(selectedWebtoonId, chapterIdFromQuery, {
+                title: chapterTitle,
+                images: chapterPages
+            });
+        } else {
+            // NEW CHAPTER logic with sequential days
+            const activeLockedChapters = targetWebtoon.chapters.filter(ch =>
+                ch.isLocked && ch.unlockDate && new Date(ch.unlockDate) > new Date()
+            );
+
+            // Base 3 days + 1 day per existing locked chapter
+            const baseDays = 3;
+            const extraDays = activeLockedChapters.length;
+            const totalDays = baseDays + extraDays;
+
+            const unlockDate = isMonetized
+                ? new Date(Date.now() + totalDays * 24 * 60 * 60 * 1000).toISOString()
+                : undefined;
+
+            const newChapter: Chapter = {
+                id: Math.random().toString(36).substr(2, 9),
+                title: chapterTitle, date: "Hoy",
+                isLocked: isMonetized,
+                unlockCost: isMonetized ? 60 : undefined,
+                unlockDate: unlockDate,
+                images: chapterPages
+            };
+            await addChapter(selectedWebtoonId, newChapter);
+        }
+
+        setIsSubmitting(false);
+        setIsSuccess(true);
+        setTimeout(() => router.push(`/news/${selectedWebtoonId}`), 2000);
+    };
+
+    return (
+        <div className="min-h-screen bg-[#F8F9FD] text-foreground pb-20">
+            {/* Custom Prompt Modal (Replacing native prompt) */}
+            <AnimatePresence>
+                {promptConfig.isOpen && (
+                    <CustomPrompt
+                        isOpen={promptConfig.isOpen}
+                        title={promptConfig.title}
+                        value={promptConfig.value}
+                        onConfirm={handlePromptConfirm}
+                        onCancel={() => setPromptConfig({ ...promptConfig, isOpen: false })}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Header */}
+            <header className="sticky top-0 z-[50] bg-white/80 backdrop-blur-lg border-b border-gray-100 p-4">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-full">
+                        <ArrowLeft size={22} className="text-gray-700" />
+                    </button>
+                    <h1 className="font-extrabold text-xl bg-gradient-to-r from-pi-purple to-indigo-600 bg-clip-text text-transparent">
+                        {isEditMode ? "Editar Capítulo" : (webtoonIdFromQuery ? "Nuevo Capítulo" : "Subir a Inktoons")}
+                    </h1>
+                </div>
+            </header>
+
+            {/* Tabs - Only show if creating NEW manga */}
+            {!webtoonIdFromQuery && (
+                <div className="px-4 bg-white border-b border-gray-100 flex">
+                    <button onClick={() => setActiveTab(1)} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest relative ${activeTab === 1 ? 'text-pi-purple' : 'text-gray-400'}`}>
+                        1. Datos
+                        {activeTab === 1 && <motion.div layoutId="tab-u" className="absolute bottom-0 left-6 right-6 h-1 bg-pi-purple rounded-full" />}
+                    </button>
+                    <button onClick={() => selectedWebtoonId && setActiveTab(2)} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest relative ${activeTab === 2 ? 'text-pi-purple' : 'text-gray-400'} ${!selectedWebtoonId ? 'opacity-30' : ''}`}>
+                        2. Capítulos
+                        {activeTab === 2 && <motion.div layoutId="tab-u" className="absolute bottom-0 left-6 right-6 h-1 bg-pi-purple rounded-full" />}
+                    </button>
+                </div>
+            )}
+
+            <div className="max-w-xl mx-auto p-6 space-y-8">
+                {(activeTab === 1 && !webtoonIdFromQuery) ? (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                        {/* Image Uploads */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div onClick={() => coverInputRef.current?.click()} className="aspect-[3/4] rounded-2xl bg-white border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden">
+                                {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">Portada</span></>}
+                                <input ref={coverInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} />
+                            </div>
+                            <div onClick={() => bannerInputRef.current?.click()} className="aspect-[3/4] rounded-2xl bg-white border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden">
+                                {bannerImage ? <img src={bannerImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">Banner</span></>}
+                                <input ref={bannerInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} />
+                            </div>
+                        </div>
+
+                        {/* Text Fields */}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Título del Manga*</label>
+                                <div onClick={() => openPrompt("Manga", "title", title)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-lg flex justify-between items-center active:bg-gray-50">
+                                    <span className={title ? "text-black font-bold" : "text-gray-300"}>{title || "Nombre de tu manga..."}</span>
+                                    <Edit3 size={18} className="text-pi-purple/40" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Autor</label>
+                                <div className="w-full p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex justify-between items-center group transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-pi-purple/10 flex items-center justify-center text-pi-purple font-black text-xs border border-pi-purple/5">
+                                            {user?.username?.charAt(0).toUpperCase() || "?"}
+                                        </div>
+                                        <span className="text-black font-extrabold text-sm">{user?.username || "Conectando..."}</span>
+                                    </div>
+                                    <div className="px-2 py-1 bg-gray-200/50 rounded-lg">
+                                        <Lock size={14} className="text-gray-400" />
+                                    </div>
+                                </div>
+                                <p className="text-[8px] font-black text-pi-purple/40 uppercase tracking-tighter ml-1">Usando tu identidad oficial de Pi Network</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Artista</label>
+                                <div onClick={() => openPrompt("Artista", "artist", artist)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50">
+                                    <span className={artist ? "text-black font-bold" : "text-gray-300"}>{artist || "Nombre del artista..."}</span>
+                                    <Edit3 size={18} className="text-pi-purple/40" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Alternativa(s)</label>
+                                <div onClick={() => openPrompt("Alternativas", "alternatives", alternatives)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50">
+                                    <span className={alternatives ? "text-black font-bold" : "text-gray-300"}>{alternatives || "Nick nombre, otro nick name..."}</span>
+                                    <Edit3 size={18} className="text-pi-purple/40" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Sinopsis / Descripción</label>
+                                <div onClick={() => openPrompt("Sinopsis", "description", description)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50 min-h-[100px]">
+                                    <span className={description ? "text-black font-bold text-sm leading-relaxed" : "text-gray-300 text-sm"}>
+                                        {description || "Escribe una breve descripción de tu historia..."}
+                                    </span>
+                                    <Edit3 size={18} className="text-pi-purple/40 flex-shrink-0" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Estado</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setStatus("ongoing")}
+                                            className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-black transition-all border-2 ${status === "ongoing" ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
+                                        >
+                                            EN MARCHA
+                                        </button>
+                                        <button
+                                            onClick={() => setStatus("completed")}
+                                            className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-black transition-all border-2 ${status === "completed" ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
+                                        >
+                                            TERMINADO
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Año</label>
+                                    <button onClick={() => openPrompt("Año", "year", year)} className="w-full bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
+                                        <span className="font-black text-pi-purple">{year}</span>
+                                        <Calendar size={14} className="text-pi-purple opacity-40" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Idioma</label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {["Español", "Inglés", "Portugués", "Francés"].map(lang => (
+                                        <button
+                                            key={lang}
+                                            onClick={() => setLanguage(lang)}
+                                            className={`py-2 rounded-xl text-[10px] font-black border-2 transition-all ${language === lang ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
+                                        >
+                                            {lang.toUpperCase().substring(0, 3)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Géneros Grid */}
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Géneros</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {genres.map(genre => (
+                                        <button
+                                            key={genre}
+                                            onClick={() => {
+                                                if (selectedGenres.includes(genre)) {
+                                                    setSelectedGenres(selectedGenres.filter(g => g !== genre));
+                                                } else {
+                                                    setSelectedGenres([...selectedGenres, genre]);
+                                                }
+                                            }}
+                                            className={`px-3 py-2 rounded-full text-[10px] font-bold transition-all border ${selectedGenres.includes(genre)
+                                                ? "bg-pi-purple/10 text-pi-purple border-pi-purple"
+                                                : "bg-white text-gray-500 border-gray-100 hover:border-gray-300"
+                                                }`}
+                                        >
+                                            {genre}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleSubmitWebtoon}
+                            disabled={isSubmitting || isSuccess}
+                            className={`w-full py-5 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all ${isSuccess ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-pi-purple to-indigo-600 text-white'}`}
+                        >
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : <Upload />}
+                            {isSubmitting ? "PERSONALIZANDO..." : isSuccess ? "MUNDO CREADO" : "PUBLICAR MANGA"}
+                        </button>
+                    </motion.div>
+                ) : (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                        {/* Chapter Title Section */}
+                        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">01. Nombre del capítulo:</h3>
+                            <div onClick={() => openPrompt("Capítulo", "chapterTitle", chapterTitle)} className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl flex justify-between items-center active:scale-[0.98] transition-transform">
+                                <span className={chapterTitle ? "text-black font-bold" : "text-gray-400"}>{chapterTitle || "Ej: Cap 01"}</span>
+                                {chapterTitle ? <Check className="text-green-500" size={18} /> : <Edit3 size={18} className="text-pi-purple/40" />}
+                            </div>
+                        </div>
+
+                        {/* Chapter Images Section */}
+                        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">02. Elige fotos:</h3>
+                                <button
+                                    onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black transition-all ${isPreviewMode ? 'bg-pi-purple text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                >
+                                    {isPreviewMode ? <Eye size={14} /> : <Play size={14} />}
+                                    {isPreviewMode ? "CERRAR VISTA" : "VISTA PREVIA"}
+                                </button>
+                            </div>
+
+                            {isPreviewMode ? (
+                                <div className="space-y-2 max-h-[60vh] overflow-y-auto rounded-2xl bg-black/5 p-4 border-2 border-dashed border-gray-200">
+                                    {chapterPages.length > 0 ? (
+                                        chapterPages.map((page, i) => (
+                                            <img key={i} src={page} className="w-full rounded-lg shadow-md" alt={`Página ${i}`} />
+                                        ))
+                                    ) : (
+                                        <div className="py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">No hay páginas para previsualizar</div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {/* Upload Trigger (Top button as in user image) */}
+                                    <button
+                                        onClick={() => pagesInputRef.current?.click()}
+                                        className="w-fit px-6 py-3 bg-blue-500 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                                    >
+                                        Elige fotos
+                                    </button>
+
+                                    {/* Pages List */}
+                                    <div className="space-y-4 mt-6">
+                                        <AnimatePresence>
+                                            {chapterPages.map((page, index) => (
+                                                <motion.div
+                                                    key={index}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.95 }}
+                                                    className="flex gap-4 items-center bg-gray-50/50 p-2 rounded-2xl border border-gray-100"
+                                                >
+                                                    <div className="relative w-24 aspect-[2/3] rounded-lg overflow-hidden shadow-sm border border-gray-200 bg-white">
+                                                        <img src={page} className="w-full h-full object-cover" />
+                                                        <div className="absolute top-0 left-0 bg-black/60 text-white text-[8px] font-black px-2 py-1 rounded-br-lg backdrop-blur-sm">
+                                                            No. {index}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex-1 flex justify-end gap-2 pr-2">
+                                                        <button
+                                                            disabled={index === 0}
+                                                            onClick={() => movePage(index, 'up')}
+                                                            className="p-3 bg-white rounded-full text-gray-400 border border-gray-100 shadow-sm disabled:opacity-30 active:scale-90 transition-all hover:text-pi-purple"
+                                                        >
+                                                            <ChevronUp size={20} />
+                                                        </button>
+                                                        <button
+                                                            disabled={index === chapterPages.length - 1}
+                                                            onClick={() => movePage(index, 'down')}
+                                                            className="p-3 bg-white rounded-full text-gray-400 border border-gray-100 shadow-sm disabled:opacity-30 active:scale-90 transition-all hover:text-pi-purple"
+                                                        >
+                                                            <ChevronDown size={20} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deletePage(index)}
+                                                            className="p-3 bg-white rounded-full text-red-400 border border-gray-100 shadow-sm active:scale-90 transition-all hover:bg-red-50"
+                                                        >
+                                                            <Trash2 size={20} />
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </AnimatePresence>
+
+                                        {/* Add More Box */}
+                                        <div
+                                            onClick={() => pagesInputRef.current?.click()}
+                                            className="w-full h-32 rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/20 flex items-center justify-center cursor-pointer hover:bg-blue-50/40 transition-colors"
+                                        >
+                                            <Plus className="text-blue-400" size={32} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <input ref={pagesInputRef} type="file" multiple className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'pages')} />
+                            <div className="pt-4 space-y-1">
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">* Solo soporte .jpg .jpeg .png .gif</p>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">* Soporta carga por lotes</p>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">* arrastre para ordenar</p>
+                            </div>
+                        </div>
+
+                        {/* Premium Setting Section (Final Step) */}
+                        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-5 relative overflow-hidden group">
+                            {/* Decorative border if active */}
+                            {isMonetized && (
+                                <div className="absolute top-0 left-0 w-1 h-full bg-pi-gold" />
+                            )}
+
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-black text-sm text-gray-800">Modo Early Access</h3>
+                                        <div className="px-1.5 py-0.5 bg-pi-gold/10 text-pi-gold-dark text-[8px] font-black rounded uppercase">Premium</div>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Monetiza tu capítulo por 3 días</p>
+                                </div>
+                                <button
+                                    disabled={isEditMode}
+                                    onClick={() => !isEditMode && setIsMonetized(!isMonetized)}
+                                    className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 shadow-inner ${isMonetized ? 'bg-pi-gold' : 'bg-gray-200'} ${isEditMode ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                >
+                                    <motion.div
+                                        animate={{ x: isMonetized ? 24 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        className="w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center"
+                                    >
+                                        {isMonetized ? <Coins size={12} className="text-pi-gold" fill="currentColor" /> : <Lock size={12} className="text-gray-300" />}
+                                    </motion.div>
+                                </button>
+                            </div>
+
+                            {isEditMode && (
+                                <p className="text-[9px] font-bold text-pi-purple/60 uppercase">* Los ajustes de Early Access son permanentes y no se pueden modificar tras la publicación.</p>
+                            )}
+
+                            <AnimatePresence>
+                                {isMonetized && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                        className="pt-2"
+                                    >
+                                        <div className="flex items-start gap-3 bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50">
+                                            <div className="p-2.5 bg-white rounded-xl shadow-sm border border-amber-100 text-pi-gold-dark">
+                                                <Coins size={20} fill="currentColor" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-[11px] font-black text-amber-900 uppercase tracking-tight flex items-center justify-between">
+                                                    Coste de lectura: <span>60 INKS</span>
+                                                </p>
+                                                <div className="h-px bg-amber-200/30 my-2" />
+                                                <p className="text-[10px] font-bold text-amber-700 leading-relaxed italic">
+                                                    "Este capítulo será exclusivo para usuarios de pago durante 72 horas. Después, todos podrán leerlo GRATIS automáticamente."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        <button
+                            onClick={handleSubmitChapter}
+                            disabled={isSubmitting || isSuccess || chapterPages.length === 0}
+                            className={`w-full py-5 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all overflow-hidden relative group ${isSuccess
+                                ? 'bg-green-500 text-white'
+                                : isMonetized
+                                    ? 'bg-gradient-to-r from-amber-500 to-pi-gold text-white'
+                                    : 'bg-black text-white'
+                                }`}
+                        >
+                            {isSubmitting ? (
+                                <Loader2 className="animate-spin" />
+                            ) : isMonetized ? (
+                                <Coins size={20} fill="currentColor" />
+                            ) : (
+                                <Upload size={20} />
+                            )}
+
+                            <span>
+                                {isSubmitting
+                                    ? "PROCESANDO..."
+                                    : isSuccess
+                                        ? (isEditMode ? "CAMBIOS GUARDADOS" : "CAPÍTULO PUBLICADO")
+                                        : isMonetized
+                                            ? "LANZAR EN EARLY ACCESS"
+                                            : (isEditMode ? "GUARDAR CAMBIOS" : "PUBLICAR CAPÍTULO GRATIS")}
+                            </span>
+
+                            {/* Hover effect highlight */}
+                            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
+                        </button>
+                    </motion.div>
+                )}
+            </div>
+        </div>
+    );
+}
