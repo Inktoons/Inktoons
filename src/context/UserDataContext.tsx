@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { usePi } from "@/components/PiNetworkProvider";
+import { SupabaseService } from "@/lib/supabaseService";
 
 interface UserData {
     favorites: string[]; // IDs of favorite webtoons
@@ -11,16 +13,22 @@ interface UserData {
     readChapters: Record<string, string[]>; // webtoonId -> list of ALL read chapterIds
     profileImage?: string; // Base64 or URL of profile image
     balance: number; // Virtual Currency Balance (Inks)
+    subscription?: {
+        type: '1m' | '6m' | '1y';
+        expiresAt: number; // Timestamp
+    };
 }
 
 interface UserDataContextType {
     userData: UserData;
+    loading: boolean;
     toggleFavorite: (id: string) => void;
     addToHistory: (id: string) => void;
     toggleFollowAuthor: (authorName: string) => void;
     rateWebtoon: (id: string, rating: number) => void;
     setProfileImage: (image: string) => void;
     addBalance: (amount: number) => void;
+    setSubscription: (type: '1m' | '6m' | '1y', durationInMonths: number) => void;
     isFavorite: (id: string) => boolean;
     isInHistory: (id: string) => boolean;
     isFollowingAuthor: (authorName: string) => boolean;
@@ -33,6 +41,8 @@ interface UserDataContextType {
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
 export function UserDataProvider({ children }: { children: ReactNode }) {
+    const { user } = usePi();
+    const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState<UserData>({
         favorites: [],
         history: [],
@@ -44,24 +54,52 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         balance: 50, // Welcome bonus
     });
 
-    // Load from localStorage on mount
+    // 📥 LOAD DATA (Supabase > LocalStorage)
     useEffect(() => {
-        const stored = localStorage.getItem("inktoons_user_data");
-        if (stored) {
-            try {
-                // Handle legacy data structure if needed
-                const parsed = JSON.parse(stored);
-                setUserData(prev => ({ ...prev, ...parsed }));
-            } catch (e) {
-                console.error("Failed to parse user data", e);
-            }
-        }
-    }, []);
+        const loadInitialData = async () => {
+            setLoading(true);
 
-    // Save to localStorage on change
+            // 1. Try Supabase if user is logged in
+            if (user?.uid) {
+                const cloudData = await SupabaseService.getUserData(user.uid);
+                if (cloudData) {
+                    setUserData(prev => ({ ...prev, ...cloudData }));
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // 2. Fallback to localStorage
+            const stored = localStorage.getItem("inktoons_user_data");
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    setUserData(prev => ({ ...prev, ...parsed }));
+                } catch (e) {
+                    console.error("Failed to parse user data", e);
+                }
+            }
+            setLoading(false);
+        };
+
+        loadInitialData();
+    }, [user?.uid]);
+
+    // 📤 SAVE DATA (Local + Cloud)
     useEffect(() => {
+        if (loading) return; // Don't save initial state
+
+        // Local save
         localStorage.setItem("inktoons_user_data", JSON.stringify(userData));
-    }, [userData]);
+
+        // Cloud save if logged in
+        if (user?.uid) {
+            const timeoutId = setTimeout(() => {
+                SupabaseService.saveUserData(user.uid, userData);
+            }, 1000); // Debounce to avoid too many writes
+            return () => clearTimeout(timeoutId);
+        }
+    }, [userData, user?.uid, loading]);
 
     const toggleFavorite = useCallback((id: string) => {
         setUserData(prev => {
@@ -149,6 +187,23 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         }));
     }, []);
 
+    const setSubscription = useCallback((type: '1m' | '6m' | '1y', durationInMonths: number) => {
+        setUserData(prev => {
+            const now = Date.now();
+            const ms = durationInMonths * 30 * 24 * 60 * 60 * 1000;
+            const currentExpiry = prev.subscription?.expiresAt || now;
+            const newExpiry = Math.max(now, currentExpiry) + ms;
+
+            return {
+                ...prev,
+                subscription: {
+                    type,
+                    expiresAt: newExpiry
+                }
+            };
+        });
+    }, []);
+
     const isFavorite = useCallback((id: string) => userData.favorites.includes(id), [userData.favorites]);
     const isInHistory = useCallback((id: string) => userData.history.includes(id), [userData.history]);
     const isFollowingAuthor = useCallback((authorName: string) => userData.following.includes(authorName), [userData.following]);
@@ -161,12 +216,14 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     return (
         <UserDataContext.Provider value={{
             userData,
+            loading,
             toggleFavorite,
             addToHistory,
             toggleFollowAuthor,
             rateWebtoon,
             setProfileImage,
             addBalance,
+            setSubscription,
             isFavorite,
             isInHistory,
             isFollowingAuthor,

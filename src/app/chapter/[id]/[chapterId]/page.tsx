@@ -7,6 +7,8 @@ import { ArrowLeft, MessageSquare, ChevronLeft, ChevronRight, Settings, ImageIco
 import { useContent } from "@/context/ContentContext";
 import { mockNews } from "@/data/mockNews";
 import { useUserData } from "@/context/UserDataContext";
+import { useMissions } from "@/context/MissionContext";
+import { Heart } from "lucide-react";
 
 export default function ChapterReaderPage() {
     const params = useParams();
@@ -20,9 +22,11 @@ export default function ChapterReaderPage() {
 
     const { getWebtoon } = useContent();
     const { updateReadingProgress } = useUserData();
+    const { trackAction } = useMissions();
+    const [isLiked, setIsLiked] = useState(false);
 
     const webtoon = getWebtoon(id);
-    const chapter = webtoon?.chapters.find(c => c.id === chapterId);
+    const chapter = webtoon?.chapters?.find(c => c.id === chapterId);
 
     const [loadingNext, setLoadingNext] = useState(false);
     const [loadingMenu, setLoadingMenu] = useState(false);
@@ -31,14 +35,16 @@ export default function ChapterReaderPage() {
     useEffect(() => {
         if (id && chapterId) {
             updateReadingProgress(id, chapterId);
+            trackAction('READ_CHAPTER', { seriesId: id, chapterId });
         }
-    }, [id, chapterId, updateReadingProgress]);
+    }, [id, chapterId, updateReadingProgress, trackAction]);
 
     // Reset scroll and state on chapter change
     useEffect(() => {
         window.scrollTo(0, 0);
         setLoadingNext(false);
         setLoadingMenu(false);
+        setIsLiked(false);
     }, [chapterId]);
 
     if (!webtoon || !chapter) {
@@ -59,7 +65,7 @@ export default function ChapterReaderPage() {
     // Navigation logic: Episodes are usually stored Newest First [3, 2, 1]
     // To go from 1 to 2, we need the one BEFORE in the array if sorted newest-first
     // Or just reverse the list to have [1, 2, 3]
-    const chaptersList = [...webtoon.chapters].reverse();
+    const chaptersList = [...(webtoon.chapters || [])].reverse();
     const currentChapterIndex = chaptersList.findIndex(c => c.id === chapterId);
 
     const nextChapter = chaptersList[currentChapterIndex + 1]; // Episode N+1
@@ -121,6 +127,17 @@ export default function ChapterReaderPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            if (!isLiked) {
+                                setIsLiked(true);
+                                trackAction('LIKE_CHAPTER', { seriesId: id, chapterId });
+                            }
+                        }}
+                        className={`p-2 rounded-full transition-colors ${isLiked ? "text-red-500 bg-red-500/10" : "hover:bg-white/10 text-white"}`}
+                    >
+                        <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
+                    </button>
                     <button className="p-2 hover:bg-white/10 rounded-full"><MessageSquare size={20} /></button>
                     <button className="p-2 hover:bg-white/10 rounded-full"><Settings size={20} /></button>
                 </div>

@@ -107,3 +107,8 @@ nextjs-portal,
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+.fallback-icon .fallback-display,
+.fallback-icon-btn .fallback-display-btn {
+  display: block !important;
+}

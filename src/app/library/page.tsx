@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { usePi } from "@/components/PiNetworkProvider";
-import { mockNews } from "@/data/mockNews";
+import { useUserData } from "@/context/UserDataContext";
+import { useContent, Webtoon } from "@/context/ContentContext";
 import {
     Bell,
     Menu,
@@ -19,14 +19,63 @@ import {
 
 export default function LibraryPage() {
     const router = useRouter();
-    const { user } = usePi();
+    const { userData } = useUserData();
+    const { webtoons, loading } = useContent();
 
-    // Simulamos historias que el usuario está leyendo actualmente
-    const readingNow = mockNews.slice(0, 3).map((item, index) => ({
-        ...item,
-        progress: [75, 30, 95][index],
-        lastChapter: ["Cap. 12", "Cap. 4", "Cap. 48"][index]
-    }));
+    // Interfaz para los items procesados de la biblioteca
+    interface ReadingItem extends Webtoon {
+        progress: number;
+        readCount: number;
+        totalChapters: number;
+        remainingCount: number;
+        lastChapterTitle: string;
+    }
+
+    // Calculamos las historias que el usuario está leyendo realmente
+    const readingNow = useMemo<ReadingItem[]>(() => {
+        if (!webtoons.length) return [];
+
+        // Filtramos y transformamos en un solo paso para evitar problemas de tipos con null
+        return userData.history.reduce<ReadingItem[]>((acc, id) => {
+            const webtoon = webtoons.find(w => w.id === id);
+            if (!webtoon) return acc;
+
+            const totalChapters = webtoon.chapters?.length || 0;
+            const readChapters = userData.readChapters[id] || [];
+            const readCount = readChapters.length;
+            const remainingCount = Math.max(0, totalChapters - readCount);
+
+            const progress = totalChapters > 0
+                ? Math.round((readCount / totalChapters) * 100)
+                : 0;
+
+            const lastReadId = userData.lastRead[id];
+            const lastReadChapter = webtoon.chapters?.find(ch => ch.id === lastReadId);
+            const lastChapterTitle = lastReadChapter ? lastReadChapter.title : "Iniciado";
+
+            acc.push({
+                ...webtoon,
+                progress,
+                readCount,
+                totalChapters,
+                remainingCount,
+                lastChapterTitle
+            });
+
+            return acc;
+        }, []);
+    }, [webtoons, userData.history, userData.readChapters, userData.lastRead]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pi-purple"></div>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Cargando Biblioteca...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-white text-foreground flex flex-col">
@@ -49,7 +98,7 @@ export default function LibraryPage() {
                         Tu Biblioteca
                     </h1>
                     <span className="text-xs font-black text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                        {readingNow.length} HISTORIAS
+                        {readingNow.length} {readingNow.length === 1 ? 'HISTORIA' : 'HISTORIAS'}
                     </span>
                 </div>
 
@@ -62,8 +111,8 @@ export default function LibraryPage() {
                                 className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group"
                                 onClick={() => router.push(`/news/${item.id}`)}
                             >
-                                <div className="flex h-40">
-                                    <div className="relative w-28 h-full flex-shrink-0">
+                                <div className="flex h-44">
+                                    <div className="relative w-32 h-full flex-shrink-0">
                                         <Image
                                             src={item.imageUrl}
                                             alt={item.title}
@@ -71,36 +120,45 @@ export default function LibraryPage() {
                                             className="object-cover"
                                         />
                                         <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors flex items-center justify-center">
-                                            <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center text-pi-purple scale-0 group-hover:scale-100 transition-transform">
-                                                <Play size={16} fill="currentColor" />
+                                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center text-pi-purple scale-0 group-hover:scale-100 transition-transform shadow-lg">
+                                                <Play size={20} fill="currentColor" className="ml-0.5" />
                                             </div>
                                         </div>
                                     </div>
                                     <div className="flex-1 p-4 flex flex-col justify-between">
                                         <div>
-                                            <span className="text-[10px] font-black text-pi-purple uppercase tracking-widest block mb-1">
-                                                {item.category}
-                                            </span>
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className="text-[10px] font-black text-pi-purple uppercase tracking-widest">
+                                                    {item.category}
+                                                </span>
+                                            </div>
                                             <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2 group-hover:text-pi-purple transition-colors">
                                                 {item.title}
                                             </h3>
-                                            <div className="flex items-center gap-2 text-[11px] text-gray-400 font-bold">
-                                                <Clock size={12} />
-                                                <span>Sigue leyendo: {item.lastChapter}</span>
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="flex items-center gap-2 text-[11px] text-gray-500 font-bold">
+                                                    <Clock size={12} className="text-gray-400" />
+                                                    <span className="line-clamp-1">{item.lastChapterTitle}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                                                    <span>{item.readCount} leídos</span>
+                                                    <span className="w-1 h-1 bg-gray-100 rounded-full" />
+                                                    <span>{item.remainingCount} por leer</span>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-1.5 mt-2">
                                             <div className="flex justify-between text-[10px] font-black text-gray-400">
                                                 <span>PROGRESO</span>
-                                                <span>{item.progress}%</span>
+                                                <span className="text-pi-purple">{item.progress}%</span>
                                             </div>
-                                            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                            <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden">
                                                 <motion.div
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${item.progress}%` }}
                                                     transition={{ duration: 1, ease: "easeOut" }}
-                                                    className="h-full bg-pi-purple"
+                                                    className="h-full bg-pi-purple shadow-[0_0_8px_rgba(147,51,234,0.3)]"
                                                 />
                                             </div>
                                         </div>

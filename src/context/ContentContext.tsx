@@ -1,29 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { mockNews, NewsItem } from "@/data/mockNews";
-import { StorageService } from "@/lib/storage";
-
-export interface Chapter {
-    id: string;
-    title: string;
-    date: string;
-    isLocked: boolean;
-    unlockCost?: number;
-    unlockDate?: string;
-    images?: string[];
-}
-
-export interface Webtoon extends NewsItem {
-    status: string; // "ongoing" | "completed"
-    genres: string[];
-    chapters: Chapter[];
-    artist?: string;
-    alternatives?: string;
-    year?: string;
-    language?: string;
-    bannerUrl?: string;
-}
+import { mockNews } from "@/data/mockNews";
+import { SupabaseService, Webtoon, Chapter } from "@/lib/supabaseService";
 
 interface ContentContextType {
     webtoons: Webtoon[];
@@ -33,6 +12,7 @@ interface ContentContextType {
     updateChapter: (webtoonId: string, chapterId: string, updatedData: Partial<Chapter>) => Promise<void>;
     deleteWebtoon: (id: string) => Promise<void>;
     getWebtoon: (id: string) => Webtoon | undefined;
+    uploadImage: (file: File) => Promise<string | null>;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
@@ -42,81 +22,117 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        async function initDB() {
+        async function loadWebtoons() {
             try {
-                // 1. Try to get data from IndexedDB
-                let data = await StorageService.getAll<Webtoon>();
+                // Load webtoons from Supabase
+                let data = await SupabaseService.getAllWebtoons();
 
-                // 2. Migration from old localStorage if IndexedDB is empty
+                // If no data in Supabase, initialize with mock data
                 if (data.length === 0) {
-                    const oldStored = localStorage.getItem("inktoons_content_data");
-                    if (oldStored) {
-                        const migratedData = JSON.parse(oldStored);
-                        await StorageService.saveAll(migratedData);
-                        data = migratedData;
-                        console.log("Migrated data from localStorage to IndexedDB");
-                        // Clear old storage to save space
-                        localStorage.removeItem("inktoons_content_data");
-                    } else {
-                        // 3. Initial state with mock data
-                        const initialWebtoons: Webtoon[] = mockNews.map(news => ({
-                            ...news,
-                            status: "ongoing",
-                            genres: ["Acción", "Aventura"],
-                            chapters: [],
-                            artist: "Unknown",
-                            year: "2025",
-                            language: "Español"
-                        }));
-                        await StorageService.saveAll(initialWebtoons);
-                        data = initialWebtoons;
-                    }
+                    const initialWebtoons: Webtoon[] = mockNews.map(news => ({
+                        ...news,
+                        status: "ongoing",
+                        genres: ["Acción", "Aventura"],
+                        chapters: [],
+                        artist: "Unknown",
+                        year: "2025",
+                        language: "Español"
+                    }));
+
+                    // Save initial data to Supabase
+                    await SupabaseService.saveAllWebtoons(initialWebtoons);
+                    data = initialWebtoons;
+                    console.log("✅ Initialized Supabase with mock data");
                 }
+
                 setWebtoons(data);
             } catch (err) {
-                console.error("Failed to init storage:", err);
+                console.error("❌ Failed to load webtoons from Supabase:", err);
+
+                // Fallback to mock data if Supabase fails
+                const fallbackData: Webtoon[] = mockNews.map(news => ({
+                    ...news,
+                    status: "ongoing",
+                    genres: ["Acción", "Aventura"],
+                    chapters: [],
+                    artist: "Unknown",
+                    year: "2025",
+                    language: "Español"
+                }));
+                setWebtoons(fallbackData);
             } finally {
                 setLoading(false);
             }
         }
-        initDB();
+        loadWebtoons();
     }, []);
 
     const addWebtoon = async (webtoon: Webtoon) => {
-        await StorageService.save(webtoon);
-        setWebtoons(prev => [webtoon, ...prev]);
+        try {
+            await SupabaseService.saveWebtoon(webtoon);
+            setWebtoons(prev => [webtoon, ...prev]);
+        } catch (error) {
+            console.error("Error adding webtoon:", error);
+            throw error;
+        }
     };
 
     const addChapter = async (webtoonId: string, chapter: Chapter) => {
-        const target = webtoons.find(w => w.id === webtoonId);
-        if (target) {
-            const updated = {
-                ...target,
-                chapters: [chapter, ...target.chapters]
-            };
-            await StorageService.save(updated);
-            setWebtoons(prev => prev.map(w => w.id === webtoonId ? updated : w));
+        try {
+            await SupabaseService.addChapter(webtoonId, chapter);
+
+            const target = webtoons.find(w => w.id === webtoonId);
+            if (target) {
+                const updated = {
+                    ...target,
+                    chapters: [chapter, ...(target.chapters || [])]
+                };
+                setWebtoons(prev => prev.map(w => w.id === webtoonId ? updated : w));
+            }
+        } catch (error) {
+            console.error("Error adding chapter:", error);
+            throw error;
         }
     };
 
     const updateChapter = async (webtoonId: string, chapterId: string, updatedData: Partial<Chapter>) => {
-        const target = webtoons.find(w => w.id === webtoonId);
-        if (target) {
-            const updatedChapters = target.chapters.map(ch =>
-                ch.id === chapterId ? { ...ch, ...updatedData } : ch
-            );
-            const updatedWebtoon = { ...target, chapters: updatedChapters };
-            await StorageService.save(updatedWebtoon);
-            setWebtoons(prev => prev.map(w => w.id === webtoonId ? updatedWebtoon : w));
+        try {
+            await SupabaseService.updateChapter(chapterId, updatedData);
+
+            const target = webtoons.find(w => w.id === webtoonId);
+            if (target) {
+                const updatedChapters = (target.chapters || []).map(ch =>
+                    ch.id === chapterId ? { ...ch, ...updatedData } : ch
+                );
+                const updatedWebtoon = { ...target, chapters: updatedChapters };
+                setWebtoons(prev => prev.map(w => w.id === webtoonId ? updatedWebtoon : w));
+            }
+        } catch (error) {
+            console.error("Error updating chapter:", error);
+            throw error;
         }
     };
 
     const deleteWebtoon = async (id: string) => {
-        await StorageService.delete(id);
-        setWebtoons(prev => prev.filter(w => w.id !== id));
+        try {
+            await SupabaseService.deleteWebtoon(id);
+            setWebtoons(prev => prev.filter(w => w.id !== id));
+        } catch (error) {
+            console.error("Error deleting webtoon:", error);
+            throw error;
+        }
     };
 
     const getWebtoon = (id: string) => webtoons.find(w => w.id === id);
+
+    const uploadImage = async (file: File): Promise<string | null> => {
+        try {
+            return await SupabaseService.uploadImage(file);
+        } catch (error) {
+            console.error("Error uploading image:", error);
+            return null;
+        }
+    };
 
     return (
         <ContentContext.Provider value={{
@@ -126,7 +142,8 @@ export function ContentProvider({ children }: { children: ReactNode }) {
             addChapter,
             updateChapter,
             deleteWebtoon,
-            getWebtoon
+            getWebtoon,
+            uploadImage
         }}>
             {children}
         </ContentContext.Provider>
@@ -140,3 +157,6 @@ export function useContent() {
     }
     return context;
 }
+
+// Re-export types for convenience
+export type { Webtoon, Chapter };

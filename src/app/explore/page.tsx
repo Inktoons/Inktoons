@@ -14,12 +14,15 @@ import {
 } from "lucide-react";
 import { mockNews } from "@/data/mockNews";
 import { useContent } from "@/context/ContentContext";
+import { useMissions } from "@/context/MissionContext";
 
 export default function ExplorePage() {
     const router = useRouter();
     const { user } = usePi();
     const { webtoons } = useContent();
+    const { trackAction } = useMissions();
     const [activeTab, setActiveTab] = useState("POPULAR"); // Tabs: POPULAR, LO ÚLTIMO, DIRECTORIO
+
     const [searchQuery, setSearchQuery] = useState("");
 
     // Directory State
@@ -48,7 +51,7 @@ export default function ExplorePage() {
                 author: w.author,
                 genre: w.category,
                 views: "0",
-                chapter: w.chapters.length > 0 ? `Capítulo ${w.chapters.length}` : "Sin capítulos",
+                chapter: (w.chapters?.length || 0) > 0 ? `Capítulo ${w.chapters?.length}` : "Sin capítulos",
                 year: "2025",
                 status: w.status === "ongoing" ? "Continuo" : "Completado",
                 image: w.imageUrl
@@ -119,7 +122,10 @@ export default function ExplorePage() {
                 return (
                     <button
                         key={item}
-                        onClick={() => onSelect(item)}
+                        onClick={() => {
+                            onSelect(item);
+                            if (label) trackAction('FILTER_GENRE', { type: label, value: item });
+                        }}
                         className={`flex-shrink-0 text-sm font-medium transition-colors whitespace-nowrap ${isActive
                             ? "text-pi-purple font-black"
                             : "text-gray-400 hover:text-gray-600"
@@ -160,7 +166,10 @@ export default function ExplorePage() {
                             <input
                                 type="text"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    if (e.target.value.length > 3) trackAction('SEARCH_USED');
+                                }}
                                 placeholder="Ingrese el título o el nombre del autor"
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg py-3 pl-11 pr-4 text-sm outline-none focus:border-pi-purple focus:ring-1 focus:ring-pi-purple transition-all text-black"
                             />
@@ -235,7 +244,10 @@ export default function ExplorePage() {
                                 <div
                                     key={item.id}
                                     className="flex items-start gap-4 hover:bg-gray-50 p-2 rounded-xl transition-colors cursor-pointer"
-                                    onClick={() => router.push(`/news/${item.id}`)}
+                                    onClick={() => {
+                                        trackAction('VIEW_SERIES_DETAILS');
+                                        router.push(`/news/${item.id}`);
+                                    }}
                                 >
                                     {/* Thumbnail */}
                                     <div className="relative w-20 h-28 flex-shrink-0 rounded-md overflow-hidden shadow-sm">
@@ -280,7 +292,10 @@ export default function ExplorePage() {
                             <div
                                 key={manga.id}
                                 className="flex items-start gap-4 p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group"
-                                onClick={() => router.push(`/news/${manga.id}`)}
+                                onClick={() => {
+                                    trackAction('VIEW_SERIES_DETAILS');
+                                    router.push(`/news/${manga.id}`);
+                                }}
                             >
                                 {/* Manga Cover */}
                                 <div className="relative w-24 h-32 flex-shrink-0 rounded shadow-sm overflow-hidden">

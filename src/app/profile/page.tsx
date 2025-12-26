@@ -149,7 +149,7 @@ export default function ProfilePage() {
                                     <div className="flex-1 flex flex-col justify-between py-1">
                                         <div>
                                             <h4 className="font-bold text-sm dark:text-white line-clamp-1">{inktoon.title}</h4>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Capítulos: {inktoon.chapters.length}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Capítulos: {inktoon.chapters?.length || 0}</p>
                                         </div>
 
                                         <div className="flex items-center gap-4 mt-2">

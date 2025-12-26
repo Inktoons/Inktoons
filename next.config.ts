@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+// Force config reload
 
 const nextConfig: NextConfig = {
   images: {

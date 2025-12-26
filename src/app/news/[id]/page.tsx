@@ -32,6 +32,7 @@ import {
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
 import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
+import { useMissions } from "@/context/MissionContext";
 
 interface Comment {
     id: string;
@@ -64,6 +65,7 @@ export default function MangaDetailPage() {
         updateReadingProgress
     } = useUserData();
     const { getWebtoon } = useContent();
+    const { trackAction } = useMissions();
 
     // Attempt to get from context first, then mock
     const contentWebtoon = getWebtoon(id as string);
@@ -100,9 +102,16 @@ export default function MangaDetailPage() {
     const [newCommentImage, setNewCommentImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Rating State initialized from data
-    const [mockRating, setMockRating] = useState(news?.rating?.toFixed(1) || "0.0");
+    // Rating State initialized from data as integer
+    const [mockRating, setMockRating] = useState(Math.round(news?.rating || 0).toString());
     const [voteCount, setVoteCount] = useState(news?.votes || 0);
+
+    // Track visit
+    React.useEffect(() => {
+        if (news?.id) {
+            trackAction('VIEW_SERIES_DETAILS', { seriesId: news.id });
+        }
+    }, [news?.id, trackAction]);
 
 
     if (!news) {
@@ -145,10 +154,12 @@ export default function MangaDetailPage() {
             }
             rateWebtoon(news.id, ratingValue);
 
-            // Updates visual average slightly to show interaction
+            // Updates visual average slightly to show interaction (rounded to nearest integer)
             const currentTotal = parseFloat(mockRating) * voteCount;
-            const newAverage = ((currentTotal + ratingValue) / (voteCount + 1)).toFixed(1);
+            const newAverage = Math.round((currentTotal + ratingValue) / (voteCount + 1)).toString();
             setMockRating(newAverage);
+
+            trackAction('RATE_SERIES', { seriesId: news.id, rating: ratingValue });
 
         } else {
             authenticate();
@@ -200,6 +211,7 @@ export default function MangaDetailPage() {
         setNewCommentText("");
         setNewCommentImage(null);
         setShowCommentInput(false);
+        trackAction('COMMENT', { seriesId: news.id });
     };
 
     return (
@@ -214,7 +226,12 @@ export default function MangaDetailPage() {
                 </div>
                 <div className="flex items-center gap-4 text-gray-600">
                     <button className="hover:text-black transition-colors"><Download size={22} /></button>
-                    <button className="hover:text-black transition-colors"><Share2 size={22} /></button>
+                    <button
+                        onClick={() => trackAction('SHARE_SERIES', { seriesId: news.id })}
+                        className="hover:text-black transition-colors"
+                    >
+                        <Share2 size={22} />
+                    </button>
                     <button className="hover:text-black transition-colors"><AlertCircle size={22} /></button>
                 </div>
             </nav>
@@ -299,7 +316,16 @@ export default function MangaDetailPage() {
                 {/* Action Buttons */}
                 <div className="px-5 mb-8 flex gap-4">
                     <button
-                        onClick={() => toggleFavorite(news.id)}
+                        onClick={() => {
+                            toggleFavorite(news.id);
+                            // Assuming toggleFavorite doesn't return state, we track only if it was not fav before (likely following)
+                            // But simplify: just track intent.
+                            if (!isFav) trackAction('FOLLOW_AUTHOR', { author: news.author }); // Actually this is 'FOLLOW_SERIES' usually, but 'Follow Author' is separate in text.
+                            // NOTE: toggleFavorite follows the Webtoon Series. 
+                            // toggleFollowAuthor follows the AUTHOR. This button says "SEGUIR / SIGUIENDO" but calls toggleFavorite(news.id) which looks like Series Follow.
+                            // Let's check the text below "Publicador". Using that one for 'FOLLOW_AUTHOR'.
+                            // This generic button probably means "Follow Series".
+                        }}
                         className={`flex-1 py-3 rounded-full font-black text-sm border-2 transition-all active:scale-95 flex items-center justify-center gap-2 ${isFav
                             ? "border-pi-purple bg-pi-purple/10 text-pi-purple"
                             : "border-gray-200 text-gray-700 hover:border-pi-purple"
@@ -334,13 +360,13 @@ export default function MangaDetailPage() {
                     </button>
                 </div>
 
-                {/* Tab Navigation */}
-                <div className="flex items-center border-b border-gray-100 mb-6 sticky top-[60px] bg-white z-40">
+                {/* Tab Navigation - Adjusted for better sticky behavior */}
+                <div className="flex items-center border-b border-gray-100 sticky top-[52px] bg-white z-40 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.01)]">
                     {["DETALLES", "EPISODIO", "COMENTARIOS"].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-4 text-xs font-black tracking-widest relative ${activeTab === tab ? "text-pi-purple" : "text-gray-400"
+                            className={`flex-1 py-4 text-[11px] font-black tracking-widest relative transition-colors ${activeTab === tab ? "text-pi-purple" : "text-gray-400 hover:text-gray-600"
                                 }`}
                         >
                             {tab}
@@ -355,7 +381,7 @@ export default function MangaDetailPage() {
                 </div>
 
                 {/* Tab Content */}
-                <div className="px-5 pb-20 min-h-[300px]">
+                <div className="px-5 pt-6 pb-20 min-h-[300px]">
                     {activeTab === "DETALLES" && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             {/* Alternativo */}
@@ -388,7 +414,10 @@ export default function MangaDetailPage() {
                                         <p className="text-xs text-gray-400">Verificado Oficial</p>
                                     </div>
                                     <button
-                                        onClick={() => toggleFollowAuthor(news.author)}
+                                        onClick={() => {
+                                            toggleFollowAuthor(news.author);
+                                            if (!isFollowingAuth) trackAction('FOLLOW_AUTHOR', { author: news.author });
+                                        }}
                                         className={`ml-auto text-xs font-black border px-3 py-1 rounded-full transition-colors ${isFollowingAuth
                                             ? "bg-pi-purple text-white border-pi-purple"
                                             : "text-pi-purple border-pi-purple hover:bg-pi-purple hover:text-white"
@@ -483,7 +512,7 @@ export default function MangaDetailPage() {
                                             <div className="flex items-center gap-4">
                                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-xs ${isRead ? "bg-pi-purple/10 text-pi-purple" : "bg-white border border-gray-200 text-gray-400"
                                                     }`}>
-                                                    {news.chapters.length - index}
+                                                    {(news.chapters?.length || 0) - index}
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     ArrowLeft, Image as ImageIcon, Upload, X, Check, Lock,
@@ -90,7 +90,7 @@ function CustomPrompt({ isOpen, title, value, onConfirm, onCancel }: CustomPromp
     );
 }
 
-export default function UploadPage() {
+function UploadPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const webtoonIdFromQuery = searchParams.get("webtoonId");
@@ -162,7 +162,7 @@ export default function UploadPage() {
             // If we have a chapterId, load its data
             if (chapterIdFromQuery) {
                 const targetWebtoon = webtoons.find(w => w.id === webtoonIdFromQuery);
-                const targetChapter = targetWebtoon?.chapters.find(c => c.id === chapterIdFromQuery);
+                const targetChapter = targetWebtoon?.chapters?.find(c => c.id === chapterIdFromQuery);
                 if (targetChapter) {
                     setChapterTitle(targetChapter.title);
                     setChapterPages(targetChapter.images || []);
@@ -279,7 +279,7 @@ export default function UploadPage() {
             });
         } else {
             // NEW CHAPTER logic with sequential days
-            const activeLockedChapters = targetWebtoon.chapters.filter(ch =>
+            const activeLockedChapters = (targetWebtoon.chapters || []).filter(ch =>
                 ch.isLocked && ch.unlockDate && new Date(ch.unlockDate) > new Date()
             );
 
@@ -695,5 +695,17 @@ export default function UploadPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function UploadPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <Loader2 className="animate-spin text-pi-purple" size={48} />
+            </div>
+        }>
+            <UploadPageContent />
+        </Suspense>
     );
 }
