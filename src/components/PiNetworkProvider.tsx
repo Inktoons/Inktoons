@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 interface PiUser {
     uid: string;
@@ -29,63 +29,64 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const [loading, setLoading] = useState(true);
     const [isSandbox, setIsSandbox] = useState(false);
 
-    useEffect(() => {
-        const initPi = async () => {
-            if (typeof window === "undefined") return;
+    const initPi = useCallback(async () => {
+        if (typeof window === "undefined" || !window.Pi) return;
 
-            try {
-                if (window.Pi) {
-                    const hostname = window.location.hostname;
-                    const isLocal = hostname === "localhost" ||
-                        hostname.includes("ngrok") ||
-                        hostname === "127.0.0.1";
+        try {
+            const hostname = window.location.hostname;
+            const isLocal = hostname === "localhost" || hostname.includes("ngrok") || hostname === "127.0.0.1";
+            const isVercel = hostname.includes("vercel.app");
+            const useSandbox = isLocal || isVercel;
 
-                    const isVercel = hostname.includes("vercel.app");
+            setIsSandbox(useSandbox);
+            console.log(`[Pi SDK] Initializing on ${hostname} (Sandbox: ${useSandbox})`);
 
-                    // Forzamos sandbox si estamos en local, ngrok o Vercel 
-                    // (Esto activa las líneas amarillas y el uso de Test-Pi)
-                    const useSandbox = isLocal || isVercel;
-                    setIsSandbox(useSandbox);
-
-                    console.log(`[Pi SDK] Init with sandbox: ${useSandbox} on ${hostname}`);
-
-                    window.Pi.init({ version: "2.0", sandbox: useSandbox });
-                }
-            } catch (error) {
-                console.error("Error initializing Pi SDK:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (window.Pi) {
-            initPi();
-        } else {
-            const interval = setInterval(() => {
-                if (window.Pi) {
-                    initPi();
-                    clearInterval(interval);
-                }
-            }, 500);
-            return () => clearInterval(interval);
+            await window.Pi.init({ version: "2.0", sandbox: useSandbox });
+            console.log("[Pi SDK] Ready");
+        } catch (error) {
+            console.error("[Pi SDK] Init Error:", error);
+        } finally {
+            setLoading(false);
         }
     }, []);
 
+    useEffect(() => {
+        // Intentar inicializar inmediatamente
+        if (window.Pi) {
+            initPi();
+        } else {
+            // Reintentar si el script tarda en cargar
+            const timer = setTimeout(initPi, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [initPi]);
+
     const authenticate = async () => {
-        if (!window.Pi) return;
+        if (!window.Pi) {
+            alert("No se detectó el SDK de Pi. Por favor, abre la app desde el Pi Browser.");
+            return;
+        }
+
         try {
+            console.log("[Pi SDK] Requesting authentication...");
             const scopes = ["username", "payments", "wallet_address"];
+
             const onIncompletePaymentFound = async (payment: any) => {
+                console.log("[Pi SDK] Incomplete payment found:", payment.identifier);
                 await fetch("/api/pi/complete", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction.txid }),
+                    body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction?.txid || "" }),
                 });
             };
+
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            console.log("[Pi SDK] Auth Success:", auth.user.username);
             setUser(auth.user);
-        } catch (error) {
-            console.error("Auth failed:", error);
+        } catch (error: any) {
+            console.error("[Pi SDK] Auth Error:", error);
+            const msg = error.message || JSON.stringify(error);
+            alert("Error al conectar: " + msg);
         }
     };
 
@@ -113,18 +114,17 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     if (onSuccess) onSuccess();
                 },
                 onCancel: () => console.log("Pago cancelado"),
-                onError: (error: any) => alert("Error Pi: " + error.message),
+                onError: (error: any) => alert("Error de pago: " + error.message),
             });
-        } catch (error) {
-            console.error("Payment error:", error);
+        } catch (error: any) {
+            alert("Error crítico de pago: " + error.message);
         }
     };
 
     return (
         <PiContext.Provider value={{ user, loading, isSandbox, authenticate, createPayment }}>
-            {/* Indicador visual de Sandbox para nosotros */}
             {isSandbox && (
-                <div className="fixed top-0 left-0 right-0 h-1 bg-yellow-400 z-[9999] pointer-events-none" />
+                <div className="fixed top-0 left-0 right-0 h-1 bg-yellow-400 z-[99999] pointer-events-none" />
             )}
             {children}
         </PiContext.Provider>
