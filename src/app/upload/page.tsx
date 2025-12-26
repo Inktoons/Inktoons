@@ -293,7 +293,12 @@ function UploadPageContent() {
             setTimeout(() => { setIsSuccess(false); setActiveTab(2); }, 2000);
         } catch (error: any) {
             console.error("Error submitting webtoon:", error);
-            const errorMessage = error?.message || (typeof error === 'string' ? error : "Error desconocido");
+            let errorMessage = error?.message || (typeof error === 'string' ? error : "Error desconocido");
+
+            if (errorMessage.includes("Failed to fetch")) {
+                errorMessage = "Error de red (Failed to fetch). Posibles causas: CORS bloqueado en Supabase, la URL de Supabase es incorrecta o no tienes internet.";
+            }
+
             alert(`Error al publicar: ${errorMessage}. Reintenta.`);
             setIsSubmitting(false);
         }
@@ -402,10 +407,14 @@ function UploadPageContent() {
             </header>
 
             {/* Supabase Config Check */}
-            {(!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) && (
+            {(!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ? (
                 <div className="bg-red-500 text-white p-3 text-[10px] font-black uppercase text-center flex items-center justify-center gap-2">
                     <AlertCircle size={14} />
-                    ¡Atención! Variables de Supabase no configuradas en Vercel. La subida fallará.
+                    ¡Atención! Variables de Supabase no detectadas.
+                </div>
+            ) : (
+                <div className="bg-green-500/10 border-b border-green-500/20 p-2 text-[8px] font-mono text-green-700 break-all">
+                    DEBUG: URL={process.env.NEXT_PUBLIC_SUPABASE_URL.substring(0, 15)}... | KEY={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.substring(0, 5)}...
                 </div>
             )}
 
