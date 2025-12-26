@@ -34,14 +34,15 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         if (window.Pi) {
             try {
                 const hostname = window.location.hostname;
-                // Forzamos sandbox en Vercel/Local para que Test-Pi funcione
-                const isSandboxRequested = hostname === "localhost" || hostname.includes("ngrok") || hostname.includes("vercel.app");
+                // SOLO usamos sandbox en local o ngrok. 
+                // En Vercel usamos false para que Pi Browser lo gestione nativamente según el Portal.
+                const useSandbox = hostname === "localhost" || hostname.includes("ngrok");
 
-                await window.Pi.init({ version: "2.0", sandbox: isSandboxRequested });
+                await window.Pi.init({ version: "2.0", sandbox: useSandbox });
                 initialized.current = true;
-                console.log("[PI] Modo Sandbox activado para Testnet");
+                console.log(`[PI] SDK Inicializado (Sandbox: ${useSandbox})`);
             } catch (error) {
-                console.log("[PI] Nota: El SDK ya estaba listo.");
+                console.log("[PI] El SDK ya estaba listo.");
             }
         }
         setLoading(false);
@@ -54,7 +55,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
     const authenticate = async () => {
         if (!window.Pi) {
-            alert("El SDK de Pi no está listo. Prueba a refrescar la página en el Pi Browser.");
+            alert("El SDK de Pi no está listo. Prueba a refrescar.");
             return;
         }
 
@@ -72,10 +73,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             setUser(auth.user);
         } catch (error: any) {
             if (error.message?.includes("cancelled")) return;
-
-            // Mensaje de ayuda estratégica
-            alert("¡Casi listo! Para conectar tu cuenta en esta versión de prueba, asegúrate de estar en el modo Sandbox de Pi Browser.");
-            console.error(error);
+            alert("Error de conexión: " + (error.message || "Error desconocido"));
         }
     };
 
@@ -99,13 +97,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     if (res.ok && onSuccess) onSuccess();
                 },
                 onCancel: () => { },
-                onError: (error: any) => {
-                    if (error.message?.includes("Sandbox")) {
-                        alert("Este pago requiere modo Sandbox activo (Test-Pi).");
-                    } else {
-                        alert("Error en el pago: " + error.message);
-                    }
-                },
+                onError: (error: any) => alert("Error en el pago: " + error.message),
             });
         } catch (error: any) {
             console.error("Payment error:", error);
