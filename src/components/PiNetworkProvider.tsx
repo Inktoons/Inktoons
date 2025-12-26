@@ -34,15 +34,14 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         if (window.Pi) {
             try {
                 const hostname = window.location.hostname;
-                // SOLO usamos sandbox en local o ngrok. 
-                // En Vercel usamos false para que Pi Browser lo gestione nativamente según el Portal.
-                const useSandbox = hostname === "localhost" || hostname.includes("ngrok");
+                // IMPORTANTE: Para Testnet App DEBE ser sandbox: true siempre
+                const isTestEnvironment = hostname === "localhost" || hostname.includes("ngrok") || hostname.includes("vercel.app");
 
-                await window.Pi.init({ version: "2.0", sandbox: useSandbox });
+                await window.Pi.init({ version: "2.0", sandbox: isTestEnvironment });
                 initialized.current = true;
-                console.log(`[PI] SDK Inicializado (Sandbox: ${useSandbox})`);
+                console.log(`[PI] SDK Inicializado (Sandbox: ${isTestEnvironment})`);
             } catch (error) {
-                console.log("[PI] El SDK ya estaba listo.");
+                console.error("[PI] Init error:", error);
             }
         }
         setLoading(false);
@@ -54,11 +53,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     }, [initPi]);
 
     const authenticate = async () => {
-        if (!window.Pi) {
-            alert("El SDK de Pi no está listo. Prueba a refrescar.");
-            return;
-        }
-
+        if (!window.Pi) return;
         try {
             const scopes = ["username", "payments", "wallet_address"];
             const onIncompletePaymentFound = (payment: any) => {
@@ -68,27 +63,30 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction?.txid || "" }),
                 }).catch(console.error);
             };
-
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
             setUser(auth.user);
         } catch (error: any) {
             if (error.message?.includes("cancelled")) return;
-            alert("Error de conexión: " + (error.message || "Error desconocido"));
+            alert("Error al conectar: " + error.message);
         }
     };
 
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
         if (!window.Pi) return;
         try {
+            console.log("[PI] Creando pago:", amount, memo);
             await window.Pi.createPayment({ amount, memo, metadata }, {
                 onReadyForServerApproval: async (paymentId: string) => {
-                    await fetch("/api/pi/approve", {
+                    console.log("[PI] Pago listo para aprobación:", paymentId);
+                    const res = await fetch("/api/pi/approve", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ paymentId }),
                     });
+                    if (!res.ok) console.error("Error en aprobación servidor");
                 },
                 onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+                    console.log("[PI] Pago listo para completarse:", txid);
                     const res = await fetch("/api/pi/complete", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -96,11 +94,11 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     });
                     if (res.ok && onSuccess) onSuccess();
                 },
-                onCancel: () => { },
+                onCancel: () => console.log("[PI] Pago cancelado por usuario"),
                 onError: (error: any) => alert("Error en el pago: " + error.message),
             });
         } catch (error: any) {
-            console.error("Payment error:", error);
+            console.error("[PI] Error crítico:", error);
         }
     };
 
