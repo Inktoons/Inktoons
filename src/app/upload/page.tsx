@@ -401,6 +401,14 @@ function UploadPageContent() {
                 </div>
             </header>
 
+            {/* Supabase Config Check */}
+            {(!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) && (
+                <div className="bg-red-500 text-white p-3 text-[10px] font-black uppercase text-center flex items-center justify-center gap-2">
+                    <AlertCircle size={14} />
+                    ¡Atención! Variables de Supabase no configuradas en Vercel. La subida fallará.
+                </div>
+            )}
+
             {/* Tabs - Only show if creating NEW manga */}
             {!webtoonIdFromQuery && (
                 <div className="px-4 bg-white border-b border-gray-100 flex">
