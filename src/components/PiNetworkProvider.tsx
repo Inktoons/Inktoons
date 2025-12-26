@@ -28,58 +28,69 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const [loading, setLoading] = useState(true);
     const initialized = useRef(false);
 
-    const initPi = useCallback(async (useSandbox: boolean = false) => {
-        if (typeof window === "undefined") return;
+    const initPi = useCallback(async () => {
+        if (typeof window === "undefined" || initialized.current) return;
 
-        // Si ya está inicializado con el modo que queremos, no hacemos nada
-        if (initialized.current) return;
+        try {
+            const hostname = window.location.hostname;
+            const isLocal = hostname === "localhost" || hostname.includes("ngrok");
 
-        console.log(`[PI] Inicializando SDK (Sandbox: ${useSandbox})`);
+            // COMPROBACIÓN MAESTRA: ¿Estamos en modo pago?
+            const isPaymentMode = localStorage.getItem("pi_payment_mode") === "true";
 
-        if (window.Pi) {
-            try {
-                // Si estamos en Vercel, el modo sandbox depende de si queremos pagar con Test-Pi
+            // Si estamos en Vercel, solo usamos Sandbox si el usuario ha pulsado "Comprar"
+            const useSandbox = isLocal || (hostname.includes("vercel.app") && isPaymentMode);
+
+            if (window.Pi) {
                 await window.Pi.init({ version: "2.0", sandbox: useSandbox });
                 initialized.current = true;
-            } catch (error) {
-                console.log("[PI] El SDK ya estaba cargado");
+                console.log(`[PI] SDK Iniciado. Sandbox: ${useSandbox}`);
+
+                // Si acabamos de entrar en modo pago, lanzamos lo que hubiera pendiente
+                if (isPaymentMode) {
+                    console.log("[PI] Modo Pago Activo");
+                }
             }
+        } catch (error) {
+            console.error("[PI] Init error:", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, []);
 
     useEffect(() => {
-        // Al inicio cargamos SIN sandbox para que el LOGIN funcione perfecto
-        const timer = setTimeout(() => initPi(false), 1000);
-        return () => clearTimeout(timer);
+        initPi();
     }, [initPi]);
 
     const authenticate = async () => {
         if (!window.Pi) return;
         try {
+            // Limpiamos modo pago para el auth por si acaso
+            localStorage.removeItem("pi_payment_mode");
             const scopes = ["username", "payments", "wallet_address"];
-            const onIncompletePaymentFound = (payment: any) => {
-                fetch("/api/pi/complete", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction?.txid || "" }),
-                }).catch(console.error);
-            };
-            const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+            const auth = await window.Pi.authenticate(scopes, (p: any) => { });
             setUser(auth.user);
         } catch (error: any) {
-            console.error("[PI] Auth Error:", error);
-            // Si el login falla sospechamos del modo sandbox
-            alert("Error al conectar. Asegúrate de estar en el Pi Browser oficial.");
+            console.error("[PI] Auth failed", error);
+            alert("Error al conectar cuenta.");
         }
     };
 
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
+        const isPaymentMode = localStorage.getItem("pi_payment_mode") === "true";
+        const hostname = window.location.hostname;
+
+        // Si estamos en Vercel y NO estamos en modo pago todavía, activamos y recargamos
+        if (hostname.includes("vercel.app") && !isPaymentMode) {
+            localStorage.setItem("pi_payment_mode", "true");
+            // Guardamos los datos del pago para intentarlo al recargar (opcional, por ahora solo recargamos)
+            window.location.reload();
+            return;
+        }
+
         if (!window.Pi) return;
 
         try {
-            // Nota: Para Test-Pi los pagos suelen requerir el modo sandbox del SDK
-            // Pero intentamos lanzarlo nativamente primero
             await window.Pi.createPayment({ amount, memo, metadata }, {
                 onReadyForServerApproval: async (paymentId: string) => {
                     await fetch("/api/pi/approve", {
@@ -89,26 +100,38 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     });
                 },
                 onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                    const res = await fetch("/api/pi/complete", {
+                    await fetch("/api/pi/complete", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ paymentId, txid }),
                     });
-                    if (res.ok && onSuccess) onSuccess();
+                    localStorage.removeItem("pi_payment_mode");
+                    if (onSuccess) onSuccess();
                 },
-                onCancel: () => { },
+                onCancel: () => {
+                    localStorage.removeItem("pi_payment_mode");
+                    window.location.reload(); // Volvemos a modo normal
+                },
                 onError: (error: any) => {
-                    console.error("[PI] Payment Error:", error);
+                    localStorage.removeItem("pi_payment_mode");
                     alert("Error en el pago: " + error.message);
+                    window.location.reload();
                 },
             });
         } catch (error: any) {
-            console.error("[PI] Critical Payment Error:", error);
+            localStorage.removeItem("pi_payment_mode");
+            console.error(error);
         }
     };
 
     return (
         <PiContext.Provider value={{ user, loading, authenticate, createPayment }}>
+            {/* Pequeño aviso visual de que estamos en modo pago */}
+            {typeof window !== "undefined" && localStorage.getItem("pi_payment_mode") === "true" && (
+                <div className="fixed bottom-4 left-4 bg-pi-purple text-white text-[10px] px-2 py-1 rounded-full z-[9999] animate-pulse">
+                    Modo Pago Activo
+                </div>
+            )}
             {children}
         </PiContext.Provider>
     );
@@ -116,6 +139,6 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
 export const usePi = () => {
     const context = useContext(PiContext);
-    if (!context) throw new Error("usePi must be used within a PiProvider");
+    if (!context) throw new Error("usePi error");
     return context;
 };
