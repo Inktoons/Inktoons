@@ -38,10 +38,10 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                         window.location.hostname.includes("ngrok-free.dev") ||
                         window.location.hostname.includes("ngrok.io");
 
-                    // Usar sandbox siempre que estemos en un dominio local o de desarrollo (ngrok)
-                    const useSandbox = isLocal;
+                    // Usar sandbox siempre que estemos en un dominio local, ngrok o Vercel (mientras estemos en Testnet)
+                    const useSandbox = isLocal || window.location.hostname.includes("vercel.app");
 
-                    console.log(`Initializing Pi SDK (PiBrowser: ${isPiBrowser}, Local: ${isLocal}, useSandbox: ${useSandbox})...`);
+                    console.log(`Initializing Pi SDK (PiBrowser: ${isPiBrowser}, Local: ${isLocal}, Host: ${window.location.hostname}, useSandbox: ${useSandbox})...`);
 
                     window.Pi.init({ version: "2.0", sandbox: useSandbox });
                     console.log("Pi SDK initialized successfully");
