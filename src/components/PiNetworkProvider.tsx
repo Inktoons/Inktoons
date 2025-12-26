@@ -29,63 +29,53 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const initialized = useRef(false);
 
     const initPi = useCallback(async () => {
-        if (typeof window === "undefined") return;
-        if (initialized.current) return;
+        if (typeof window === "undefined" || initialized.current) return;
 
-        console.log("[PI] Intentando inicializar...");
-
-        // Pequeña espera por si el script aún no está en window
-        if (!window.Pi) {
-            await new Promise(r => setTimeout(r, 1000));
-        }
-
-        if (window.Pi && !initialized.current) {
+        // Intentar inicializar si existe el SDK
+        if (window.Pi) {
             try {
                 const hostname = window.location.hostname;
-                const useSandbox = hostname === "localhost" || hostname.includes("ngrok") || hostname.includes("vercel.app");
+                // Si estamos en Vercel, Ngrok o Local, activamos Sandbox para usar Test-Pi
+                const isDevEnv = hostname === "localhost" || hostname.includes("ngrok") || hostname.includes("vercel.app");
 
-                window.Pi.init({ version: "2.0", sandbox: useSandbox });
+                await window.Pi.init({ version: "2.0", sandbox: isDevEnv });
                 initialized.current = true;
-                console.log(`[PI] SDK de Pi cargado con éxito (Sandbox: ${useSandbox})`);
+                console.log(`[PI] SDK Inicializado con éxito. Sandbox: ${isDevEnv}`);
             } catch (error) {
-                console.error("[PI] Error al inicializar Pi SDK:", error);
+                console.log("[PI] El SDK ya estaba inicializado o hubo un error leve.");
             }
-        } else {
-            console.warn("[PI] SDK de Pi no disponible en este momento.");
         }
-
         setLoading(false);
     }, []);
 
     useEffect(() => {
-        initPi();
+        // Ejecutar con un ligero retraso para asegurar que el script de layout.tsx se cargue
+        const timer = setTimeout(initPi, 1500);
+        return () => clearTimeout(timer);
     }, [initPi]);
 
     const authenticate = async () => {
         if (!window.Pi) {
-            alert("El SDK de Pi no está listo. Prueba a refrescar la página.");
+            alert("El sistema de Pi aún se está cargando. Espera 2 segundos y vuelve a intentarlo.");
             return;
         }
 
         try {
             const scopes = ["username", "payments", "wallet_address"];
             const onIncompletePaymentFound = async (payment: any) => {
-                try {
-                    await fetch("/api/pi/complete", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction?.txid || "" }),
-                    });
-                } catch (e) {
-                    console.error("Error al completar pago pendiente:", e);
-                }
+                await fetch("/api/pi/complete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction?.txid || "" }),
+                });
             };
 
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
             setUser(auth.user);
         } catch (error: any) {
             if (error.message?.includes("cancelled")) return;
-            alert("No se pudo conectar con Pi: " + (error.message || "Error desconocido"));
+            alert("Error: Para conectar, asegúrate de estar usando el Sandbox o la URL de Desarrollo oficial.");
+            console.error(error);
         }
     };
 
@@ -94,15 +84,11 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         try {
             await window.Pi.createPayment({ amount, memo, metadata }, {
                 onReadyForServerApproval: async (paymentId: string) => {
-                    const response = await fetch("/api/pi/approve", {
+                    await fetch("/api/pi/approve", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ paymentId }),
                     });
-                    if (!response.ok) {
-                        const err = await response.json();
-                        alert("Algo salió mal en el servidor: " + (err.error || "Error"));
-                    }
                 },
                 onReadyForServerCompletion: async (paymentId: string, txid: string) => {
                     await fetch("/api/pi/complete", {
@@ -113,10 +99,10 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     if (onSuccess) onSuccess();
                 },
                 onCancel: () => { },
-                onError: (error: any) => alert("Error en el pago de Pi: " + error.message),
+                onError: (error: any) => alert("Error de pago: " + error.message),
             });
         } catch (error: any) {
-            console.error("Error crítico de pago:", error);
+            console.error("Payment error:", error);
         }
     };
 
@@ -129,6 +115,6 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
 export const usePi = () => {
     const context = useContext(PiContext);
-    if (!context) throw new Error("usePi debe estar dentro de un PiProvider");
+    if (!context) throw new Error("usePi must be used within a PiProvider");
     return context;
 };
