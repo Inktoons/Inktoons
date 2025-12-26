@@ -30,6 +30,16 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
     const authenticate = useCallback(async (isAuto = false) => {
         if (!window.Pi) return;
+
+        // Si el usuario intenta loguearse de forma manual, limpiamos cualquier modo pago
+        if (!isAuto) {
+            if (localStorage.getItem("pi_payment_mode") === "true") {
+                localStorage.removeItem("pi_payment_mode");
+                window.location.reload();
+                return;
+            }
+        }
+
         try {
             const scopes = ["username", "payments", "wallet_address"];
             const onIncompletePaymentFound = (payment: any) => {
@@ -43,12 +53,11 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
             setUser(auth.user);
             localStorage.setItem("pi_logged_in", "true");
-            console.log("[PI] Auth Exitoso:", auth.user.username);
         } catch (error: any) {
             if (!isAuto && !error.message?.includes("cancelled")) {
-                alert("Error al conectar: " + error.message);
+                alert("Error de conexión. Prueba a refrescar la página.");
             }
-            localStorage.removeItem("pi_logged_in");
+            if (!isAuto) localStorage.removeItem("pi_logged_in");
         }
     }, []);
 
@@ -63,9 +72,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
                 await window.Pi.init({ version: "2.0", sandbox: useSandbox });
                 initialized.current = true;
-                console.log(`[PI] Init (Sandbox: ${useSandbox})`);
 
-                // Si estábamos logueados, intentamos recuperar la sesión automáticamente
                 if (localStorage.getItem("pi_logged_in") === "true") {
                     await authenticate(true);
                 }
@@ -82,13 +89,16 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     }, [initPi]);
 
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
+        if (!user) {
+            alert("Debes conectar tu cuenta de Pi antes de realizar un pago.");
+            return;
+        }
+
         const isPaymentMode = localStorage.getItem("pi_payment_mode") === "true";
         const hostname = window.location.hostname;
 
         if (hostname.includes("vercel.app") && !isPaymentMode) {
             localStorage.setItem("pi_payment_mode", "true");
-            // Guardamos intención de pago para que sea más fluido tras el reload
-            localStorage.setItem("pi_pending_pay_amount", amount.toString());
             window.location.reload();
             return;
         }
@@ -119,7 +129,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                 },
                 onError: (error: any) => {
                     localStorage.removeItem("pi_payment_mode");
-                    alert("Error en el pago: " + error.message);
+                    alert("Pago fallido: " + error.message);
                     window.location.reload();
                 },
             });
@@ -128,13 +138,24 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         }
     };
 
+    const cancelPaymentMode = () => {
+        localStorage.removeItem("pi_payment_mode");
+        window.location.reload();
+    };
+
     return (
         <PiContext.Provider value={{ user, loading, authenticate, createPayment }}>
             {children}
             {typeof window !== "undefined" && localStorage.getItem("pi_payment_mode") === "true" && (
-                <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-pi-purple text-white px-4 py-2 rounded-full z-[9999] shadow-lg flex items-center gap-2 animate-bounce">
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>
-                    Pulsa de nuevo para confirmar pago con Test-Pi
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-white border-2 border-pi-purple shadow-2xl rounded-2xl p-4 z-[9999] flex flex-col items-center gap-3 animate-in slide-in-from-top duration-300 max-w-[280px] text-center">
+                    <div className="text-pi-purple font-black text-sm uppercase tracking-wider">Modo Pago Test-Pi</div>
+                    <p className="text-xs text-gray-500 font-medium">Pulsa de nuevo el botón de compra para abrir la Wallet.</p>
+                    <button
+                        onClick={cancelPaymentMode}
+                        className="text-[10px] font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-full transition-colors"
+                    >
+                        CANCELAR Y PULSAR LOGIN
+                    </button>
                 </div>
             )}
         </PiContext.Provider>
