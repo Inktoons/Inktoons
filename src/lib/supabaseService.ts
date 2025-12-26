@@ -258,7 +258,7 @@ export class SupabaseService {
             return publicUrl;
         } catch (error) {
             console.error('Error uploading image:', error);
-            return null;
+            throw error;
         }
     }
 

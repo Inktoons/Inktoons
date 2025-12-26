@@ -291,9 +291,10 @@ function UploadPageContent() {
             setIsSuccess(true);
             setStatusMessage("¡Publicado!");
             setTimeout(() => { setIsSuccess(false); setActiveTab(2); }, 2000);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error submitting webtoon:", error);
-            alert("Error al publicar. Reintenta.");
+            const errorMessage = error?.message || (typeof error === 'string' ? error : "Error desconocido");
+            alert(`Error al publicar: ${errorMessage}. Reintenta.`);
             setIsSubmitting(false);
         }
     };
@@ -365,9 +366,10 @@ function UploadPageContent() {
             setStatusMessage("¡Listo!");
             flushObjectURLs();
             setTimeout(() => router.push(`/news/${selectedWebtoonId}`), 2000);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error submitting chapter:", error);
-            alert("Error al subir el capítulo. Reintentar.");
+            const errorMessage = error?.message || (typeof error === 'string' ? error : "Error desconocido");
+            alert(`Error al subir el capítulo: ${errorMessage}. Reintentar.`);
             setIsSubmitting(false);
         }
     };
