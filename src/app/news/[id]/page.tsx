@@ -27,7 +27,8 @@ import {
     Calendar,
     CheckCircle2,
     PlusCircle,
-    Edit3
+    Edit3,
+    Crown
 } from "lucide-react";
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
@@ -495,7 +496,8 @@ export default function MangaDetailPage() {
                                             key={chapter.id}
                                             onClick={() => {
                                                 const isUnlockedByTime = chapter.unlockDate && new Date() > new Date(chapter.unlockDate);
-                                                const effectiveIsLocked = chapter.isLocked && !isUnlockedByTime;
+                                                const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
+                                                const effectiveIsLocked = chapter.isLocked && !isUnlockedByTime && !isVIP;
 
                                                 if (effectiveIsLocked) {
                                                     setSelectedChapter(chapter);
@@ -545,7 +547,8 @@ export default function MangaDetailPage() {
 
                                                 {(() => {
                                                     const isUnlockedByTime = chapter.unlockDate && new Date() > new Date(chapter.unlockDate);
-                                                    const effectiveIsLocked = chapter.isLocked && !isUnlockedByTime;
+                                                    const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
+                                                    const effectiveIsLocked = chapter.isLocked && !isUnlockedByTime && !isVIP;
 
                                                     if (effectiveIsLocked) {
                                                         const daysRemaining = Math.max(0, Math.ceil((new Date(chapter.unlockDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
@@ -560,6 +563,13 @@ export default function MangaDetailPage() {
                                                                     <Lock size={10} />
                                                                     <span>Gratis en {daysRemaining} {daysRemaining === 1 ? 'día' : 'días'}</span>
                                                                 </div>
+                                                            </div>
+                                                        );
+                                                    } else if (isVIP) {
+                                                        return (
+                                                            <div className="flex items-center gap-1.5 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black border border-amber-200 uppercase tracking-tighter">
+                                                                <Crown size={12} fill="currentColor" />
+                                                                VIP PASS
                                                             </div>
                                                         );
                                                     } else if (chapter.isLocked && isUnlockedByTime) {

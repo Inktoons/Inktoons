@@ -23,7 +23,8 @@ import {
     Trash2,
     BarChart2,
     MessageCircle,
-    Star
+    Star,
+    Crown
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useTheme } from "@/components/ThemeHandler";
@@ -76,7 +77,7 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-neutral-950 text-foreground flex flex-col transition-colors duration-300">
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col transition-colors duration-300">
             {/* Header style matching the reference image */}
             <header className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-50 z-10">
                 <div className="flex items-center gap-2">
@@ -94,17 +95,36 @@ export default function ProfilePage() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-[#171717] rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-8 flex flex-col items-center text-center mb-8 transition-colors duration-300"
+                    className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 flex flex-col items-center text-center mb-8"
                 >
-                    <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 text-4xl font-bold mb-4 border-4 border-white dark:border-gray-700 shadow-sm overflow-hidden relative">
-                        {userData.profileImage ? (
-                            <img src={userData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                            initial
+                    <div className="relative mb-4 group">
+                        {/* VIP Frame Animation */}
+                        {userData.subscription && Date.now() < userData.subscription.expiresAt && (
+                            <div className="absolute -inset-2 bg-gradient-to-tr from-amber-300 via-yellow-500 to-amber-600 rounded-full animate-spin-slow opacity-70 blur-[2px]" />
+                        )}
+                        <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-4xl font-bold border-4 border-white shadow-sm overflow-hidden relative z-10">
+                            {userData.profileImage ? (
+                                <img src={userData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                initial
+                            )}
+                        </div>
+                        {/* VIP Badge */}
+                        {userData.subscription && Date.now() < userData.subscription.expiresAt && (
+                            <div className="absolute -bottom-1 -right-1 z-20 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-full p-1.5 shadow-lg border-2 border-white">
+                                <Crown size={14} fill="currentColor" />
+                            </div>
                         )}
                     </div>
-                    <h2 className="text-2xl font-black mb-1 dark:text-white">{username}</h2>
-                    <p className="text-gray-400 font-medium mb-6 italic text-sm">Lector apasionado</p>
+                    <h2 className="text-2xl font-black mb-1 text-slate-900 flex items-center gap-2">
+                        {username}
+                        {userData.subscription && Date.now() < userData.subscription.expiresAt && (
+                            <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200 uppercase tracking-tighter">VIP</span>
+                        )}
+                    </h2>
+                    <p className="text-gray-400 font-medium mb-6 italic text-sm">
+                        {userData.subscription && Date.now() < userData.subscription.expiresAt ? "Miembro Premium" : "Lector apasionado"}
+                    </p>
 
                     <input
                         type="file"
@@ -141,15 +161,15 @@ export default function ProfilePage() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: idx * 0.1 }}
                                     onClick={() => router.push(`/news/${inktoon.id}`)}
-                                    className="bg-white dark:bg-[#171717] rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex gap-4 relative group hover:border-pi-purple/30 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                                    className="bg-white rounded-2xl border border-slate-200 p-4 flex gap-4 relative group hover:border-pi-purple/30 transition-all cursor-pointer shadow-sm hover:shadow-md"
                                 >
-                                    <div className="w-20 h-28 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-gray-100 dark:border-gray-800">
+                                    <div className="w-20 h-28 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-slate-100">
                                         <img src={inktoon.imageUrl} alt={inktoon.title} className="w-full h-full object-cover" />
                                     </div>
                                     <div className="flex-1 flex flex-col justify-between py-1">
                                         <div>
-                                            <h4 className="font-bold text-sm dark:text-white line-clamp-1">{inktoon.title}</h4>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Capítulos: {inktoon.chapters?.length || 0}</p>
+                                            <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{inktoon.title}</h4>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Capítulos: {inktoon.chapters?.length || 0}</p>
                                         </div>
 
                                         <div className="flex items-center gap-4 mt-2">
@@ -182,7 +202,7 @@ export default function ProfilePage() {
                                 </motion.div>
                             ))
                         ) : (
-                            <div className="bg-gray-50 dark:bg-neutral-900 rounded-3xl p-10 text-center border-2 border-dashed border-gray-100 dark:border-gray-800">
+                            <div className="bg-slate-50 rounded-3xl p-10 text-center border-2 border-dashed border-slate-200">
                                 <p className="text-gray-400 text-sm font-bold">Aún no has subido contenido.</p>
                                 <button
                                     onClick={() => router.push('/upload')}
@@ -203,16 +223,16 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="bg-white dark:bg-[#171717] rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between group cursor-pointer hover:border-pi-purple/30 transition-all active:scale-[0.98]"
+                            className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between group cursor-pointer hover:border-pi-purple/30 transition-all active:scale-[0.98]"
                         >
                             <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}>
+                                <div className={`w-12 h-12 rounded-xl ${item.color.split(' ')[0]} flex items-center justify-center`}>
                                     {item.icon}
                                 </div>
-                                <span className="font-bold text-gray-700 dark:text-gray-200">{item.label}</span>
+                                <span className="font-bold text-slate-700">{item.label}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="bg-gray-900 dark:bg-gray-700 text-white text-[10px] font-black px-2.5 py-1 rounded-full">
+                                <span className="bg-slate-900 text-white text-[10px] font-black px-2.5 py-1 rounded-full">
                                     {item.count}
                                 </span>
                                 <ChevronRight size={18} className="text-gray-300 group-hover:text-pi-purple" />
@@ -226,15 +246,15 @@ export default function ProfilePage() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3 }}
                         onClick={toggleTheme}
-                        className="bg-white dark:bg-[#171717] rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between group cursor-pointer hover:border-pi-purple/30 transition-all active:scale-[0.98]"
+                        className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between group cursor-pointer hover:border-pi-purple/30 transition-all active:scale-[0.98]"
                     >
                         <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center`}>
+                            <div className={`w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center`}>
                                 {theme === 'dark' ? <Moon className="text-purple-500" size={22} /> : <Sun className="text-orange-500" size={22} />}
                             </div>
-                            <span className="font-bold text-gray-700 dark:text-gray-200">Modo Oscuro</span>
+                            <span className="font-bold text-slate-700">Modo Oscuro</span>
                         </div>
-                        <div className="relative w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full transition-colors">
+                        <div className="relative w-11 h-6 bg-slate-200 rounded-full transition-colors">
                             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${theme === 'dark' ? 'left-6' : 'left-1'}`} />
                         </div>
                     </motion.div>
@@ -242,16 +262,16 @@ export default function ProfilePage() {
             </main>
 
             {/* Mobile Bottom Navigation style matching the reference */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 px-8 py-4 flex items-center justify-between z-50 transition-colors duration-300">
-                <button onClick={() => router.push("/")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 px-8 py-4 flex items-center justify-between z-50 transition-colors duration-300">
+                <button onClick={() => router.push("/")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Home size={24} />
                     <span className="text-[10px] font-bold">Inicio</span>
                 </button>
-                <button onClick={() => router.push("/explore")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                <button onClick={() => router.push("/explore")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Search size={24} />
                     <span className="text-[10px] font-bold">Explorar</span>
                 </button>
-                <button onClick={() => router.push("/library")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                <button onClick={() => router.push("/library")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <BookOpen size={24} />
                     <span className="text-[10px] font-bold">Biblioteca</span>
                 </button>

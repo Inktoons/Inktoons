@@ -79,8 +79,8 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     return (
         <PiContext.Provider value={{ user, loading, authenticate, createPayment }}>
             {children}
-            {/* Indicador sutil de que es una demo */}
-            <div className="fixed bottom-2 right-2 bg-black/20 backdrop-blur-md text-[8px] text-white px-2 py-0.5 rounded-full z-[9999] pointer-events-none">
+            {/* Indicador sutil de que es una demo - Movido arriba para no tapar el menú */}
+            <div className="fixed top-2 right-2 bg-black/10 backdrop-blur-md text-[7px] text-white/50 px-2 py-0.5 rounded-full z-[9999] pointer-events-none">
                 DEMO VERSION • FREE ACCESS
             </div>
         </PiContext.Provider>

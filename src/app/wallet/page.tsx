@@ -168,7 +168,8 @@ export default function WalletPage() {
             { passId: pass.id, type: 'subscription' }, // Metadata
             () => { // onSuccess callback
                 setLoadingPass(null);
-                setSubscription(pass.id as any, pass.durationTime); // Update context
+                const subType = pass.id.replace('pass_', '') as '1m' | '6m' | '1y';
+                setSubscription(subType, pass.durationTime); // Update context
                 alert(`¡Suscripción exitosa! Ahora tienes acceso Early Access por ${pass.duration}.`);
             }
         ).catch(() => {
