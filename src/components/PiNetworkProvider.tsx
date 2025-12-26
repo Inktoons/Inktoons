@@ -125,8 +125,9 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                         if (response.ok) {
                             console.log("Pago aprobado en el servidor");
                         } else {
-                            const errorText = await response.text();
-                            alert("Error al aprobar pago: " + errorText);
+                            const errorData = await response.json().catch(() => null);
+                            const errorMessage = errorData?.error || await response.text();
+                            alert("Error al aprobar pago: " + errorMessage);
                         }
                     } catch (error) {
                         console.error("Error en aprobación:", error);
