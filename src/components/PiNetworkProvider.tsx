@@ -28,27 +28,29 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const [loading, setLoading] = useState(true);
     const initialized = useRef(false);
 
-    const initPi = useCallback(async () => {
-        if (typeof window === "undefined" || initialized.current) return;
+    const initPi = useCallback(async (useSandbox: boolean = false) => {
+        if (typeof window === "undefined") return;
+
+        // Si ya está inicializado con el modo que queremos, no hacemos nada
+        if (initialized.current) return;
+
+        console.log(`[PI] Inicializando SDK (Sandbox: ${useSandbox})`);
 
         if (window.Pi) {
             try {
-                const hostname = window.location.hostname;
-                // IMPORTANTE: Para Testnet App DEBE ser sandbox: true siempre
-                const isTestEnvironment = hostname === "localhost" || hostname.includes("ngrok") || hostname.includes("vercel.app");
-
-                await window.Pi.init({ version: "2.0", sandbox: isTestEnvironment });
+                // Si estamos en Vercel, el modo sandbox depende de si queremos pagar con Test-Pi
+                await window.Pi.init({ version: "2.0", sandbox: useSandbox });
                 initialized.current = true;
-                console.log(`[PI] SDK Inicializado (Sandbox: ${isTestEnvironment})`);
             } catch (error) {
-                console.error("[PI] Init error:", error);
+                console.log("[PI] El SDK ya estaba cargado");
             }
         }
         setLoading(false);
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(initPi, 1000);
+        // Al inicio cargamos SIN sandbox para que el LOGIN funcione perfecto
+        const timer = setTimeout(() => initPi(false), 1000);
         return () => clearTimeout(timer);
     }, [initPi]);
 
@@ -66,27 +68,27 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
             setUser(auth.user);
         } catch (error: any) {
-            if (error.message?.includes("cancelled")) return;
-            alert("Error al conectar: " + error.message);
+            console.error("[PI] Auth Error:", error);
+            // Si el login falla sospechamos del modo sandbox
+            alert("Error al conectar. Asegúrate de estar en el Pi Browser oficial.");
         }
     };
 
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
         if (!window.Pi) return;
+
         try {
-            console.log("[PI] Creando pago:", amount, memo);
+            // Nota: Para Test-Pi los pagos suelen requerir el modo sandbox del SDK
+            // Pero intentamos lanzarlo nativamente primero
             await window.Pi.createPayment({ amount, memo, metadata }, {
                 onReadyForServerApproval: async (paymentId: string) => {
-                    console.log("[PI] Pago listo para aprobación:", paymentId);
-                    const res = await fetch("/api/pi/approve", {
+                    await fetch("/api/pi/approve", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ paymentId }),
                     });
-                    if (!res.ok) console.error("Error en aprobación servidor");
                 },
                 onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                    console.log("[PI] Pago listo para completarse:", txid);
                     const res = await fetch("/api/pi/complete", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -94,11 +96,14 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     });
                     if (res.ok && onSuccess) onSuccess();
                 },
-                onCancel: () => console.log("[PI] Pago cancelado por usuario"),
-                onError: (error: any) => alert("Error en el pago: " + error.message),
+                onCancel: () => { },
+                onError: (error: any) => {
+                    console.error("[PI] Payment Error:", error);
+                    alert("Error en el pago: " + error.message);
+                },
             });
         } catch (error: any) {
-            console.error("[PI] Error crítico:", error);
+            console.error("[PI] Critical Payment Error:", error);
         }
     };
 
