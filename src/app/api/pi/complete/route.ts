@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
     try {
         const { paymentId, txid } = await request.json();
-        const apiKey = process.env.PI_API_KEY?.trim();
+        const apiKey = process.env.PI_API_KEY?.trim() || process.env.NEXT_PUBLIC_PI_API_KEY?.trim();
+
+        if (!apiKey) {
+            console.error("PI_API_KEY and NEXT_PUBLIC_PI_API_KEY are missing");
+            return NextResponse.json({ error: "Server configuration error: Missing API Key on Vercel" }, { status: 500 });
+        }
 
         console.log("Complete request for paymentId:", paymentId, "txid:", txid);
 
