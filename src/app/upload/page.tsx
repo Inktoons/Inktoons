@@ -96,7 +96,7 @@ function UploadPageContent() {
     const webtoonIdFromQuery = searchParams.get("webtoonId");
     const chapterIdFromQuery = searchParams.get("chapterId"); // New for edit mode
 
-    const { webtoons, addWebtoon, addChapter, updateChapter } = useContent();
+    const { webtoons, addWebtoon, addChapter, updateChapter, uploadImage } = useContent();
     const { user } = usePi();
 
     const isEditMode = !!chapterIdFromQuery;
@@ -130,8 +130,9 @@ function UploadPageContent() {
     const [selectedWebtoonId, setSelectedWebtoonId] = useState<string>("");
     const [chapterTitle, setChapterTitle] = useState("");
     const [isMonetized, setIsMonetized] = useState(false);
-    const [chapterPages, setChapterPages] = useState<string[]>([]);
+    const [chapterPages, setChapterPages] = useState<{ id: string, url: string, file?: File }[]>([]);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [statusMessage, setStatusMessage] = useState("");
 
     const movePage = (index: number, direction: 'up' | 'down') => {
         const newPages = [...chapterPages];
@@ -145,6 +146,10 @@ function UploadPageContent() {
     };
 
     const deletePage = (index: number) => {
+        const page = chapterPages[index];
+        if (page.url.startsWith('blob:')) {
+            URL.revokeObjectURL(page.url);
+        }
         setChapterPages(prev => prev.filter((_, i) => i !== index));
     };
 
@@ -165,7 +170,10 @@ function UploadPageContent() {
                 const targetChapter = targetWebtoon?.chapters?.find(c => c.id === chapterIdFromQuery);
                 if (targetChapter) {
                     setChapterTitle(targetChapter.title);
-                    setChapterPages(targetChapter.images || []);
+                    setChapterPages((targetChapter.images || []).map(url => ({
+                        id: Math.random().toString(36).substr(2, 9),
+                        url
+                    })));
                     setIsMonetized(targetChapter.isLocked);
                 }
             }
@@ -193,27 +201,41 @@ function UploadPageContent() {
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const pagesInputRef = useRef<HTMLInputElement>(null);
 
+    const [coverFile, setCoverFile] = useState<File | null>(null);
+    const [bannerFile, setBannerFile] = useState<File | null>(null);
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'cover' | 'banner' | 'pages') => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
 
         if (type === 'pages') {
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setChapterPages(prev => [...prev, reader.result as string]);
-                };
-                reader.readAsDataURL(file);
-            });
+            const newPages = files.map(file => ({
+                id: Math.random().toString(36).substr(2, 9),
+                url: URL.createObjectURL(file),
+                file
+            }));
+            setChapterPages(prev => [...prev, ...newPages]);
         } else {
             const file = files[0];
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (type === 'cover') setCoverImage(reader.result as string);
-                else setBannerImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            const url = URL.createObjectURL(file);
+            if (type === 'cover') {
+                setCoverImage(url);
+                setCoverFile(file);
+            } else {
+                setBannerImage(url);
+                setBannerFile(file);
+            }
         }
+        // Reset input to allow same file again
+        e.target.value = '';
+    };
+
+    const flushObjectURLs = () => {
+        chapterPages.forEach(p => {
+            if (p.url.startsWith('blob:')) URL.revokeObjectURL(p.url);
+        });
+        if (coverImage?.startsWith('blob:')) URL.revokeObjectURL(coverImage);
+        if (bannerImage?.startsWith('blob:')) URL.revokeObjectURL(bannerImage);
     };
 
     const genres = [
@@ -233,30 +255,47 @@ function UploadPageContent() {
             return;
         }
         setIsSubmitting(true);
-        await new Promise(r => setTimeout(r, 1500));
-        const id = Math.random().toString(36).substr(2, 9);
-        const webtoon: Webtoon = {
-            id, title, excerpt: description || alternatives || "Nueva historia.",
-            category: selectedGenres[0] || "Acción",
-            date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
-            author: author || "Creador",
-            imageUrl: coverImage,
-            bannerUrl: bannerImage || undefined,
-            status: status as any,
-            genres: selectedGenres,
-            chapters: [],
-            artist: artist || "Desconocido",
-            year: year,
-            language: language,
-            alternatives: alternatives,
-            rating: 0,
-            votes: 0
-        };
-        await addWebtoon(webtoon);
-        setSelectedWebtoonId(id);
-        setIsSubmitting(false);
-        setIsSuccess(true);
-        setTimeout(() => { setIsSuccess(false); setActiveTab(2); }, 2000);
+        setStatusMessage("Subiendo portada...");
+
+        try {
+            const finalCoverUrl = coverFile ? (await uploadImage(coverFile)) : coverImage;
+
+            setStatusMessage("Subiendo banner...");
+            const finalBannerUrl = bannerFile ? (await uploadImage(bannerFile)) : bannerImage;
+
+            setStatusMessage("Creando mundo...");
+            await new Promise(r => setTimeout(r, 1000));
+
+            const id = Math.random().toString(36).substr(2, 9);
+            const webtoon: Webtoon = {
+                id, title, excerpt: description || alternatives || "Nueva historia.",
+                category: selectedGenres[0] || "Acción",
+                date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
+                author: author || "Creador",
+                imageUrl: finalCoverUrl || coverImage!,
+                bannerUrl: finalBannerUrl || bannerImage || undefined,
+                status: status as any,
+                genres: selectedGenres,
+                chapters: [],
+                artist: artist || "Desconocido",
+                year: year,
+                language: language,
+                alternatives: alternatives,
+                rating: 0,
+                votes: 0
+            };
+
+            await addWebtoon(webtoon);
+            setSelectedWebtoonId(id);
+            setIsSubmitting(false);
+            setIsSuccess(true);
+            setStatusMessage("¡Publicado!");
+            setTimeout(() => { setIsSuccess(false); setActiveTab(2); }, 2000);
+        } catch (error) {
+            console.error("Error submitting webtoon:", error);
+            alert("Error al publicar. Reintenta.");
+            setIsSubmitting(false);
+        }
     };
 
     const handleSubmitChapter = async () => {
@@ -269,43 +308,68 @@ function UploadPageContent() {
         if (!targetWebtoon) return;
 
         setIsSubmitting(true);
-        await new Promise(r => setTimeout(r, 1500));
+        setStatusMessage("Preparando imágenes...");
 
-        if (isEditMode && chapterIdFromQuery) {
-            // EDITING EXISTING CHAPTER
-            await updateChapter(selectedWebtoonId, chapterIdFromQuery, {
-                title: chapterTitle,
-                images: chapterPages
-            });
-        } else {
-            // NEW CHAPTER logic with sequential days
-            const activeLockedChapters = (targetWebtoon.chapters || []).filter(ch =>
-                ch.isLocked && ch.unlockDate && new Date(ch.unlockDate) > new Date()
-            );
+        try {
+            // Upload images sequentially to avoid overwhelming
+            const finalImages: string[] = [];
+            for (let i = 0; i < chapterPages.length; i++) {
+                const page = chapterPages[i];
+                setStatusMessage(`Subiendo página ${i + 1}/${chapterPages.length}...`);
+                if (page.file) {
+                    const url = await uploadImage(page.file);
+                    if (url) finalImages.push(url);
+                    else finalImages.push(page.url); // Fallback
+                } else {
+                    finalImages.push(page.url);
+                }
+            }
 
-            // Base 3 days + 1 day per existing locked chapter
-            const baseDays = 3;
-            const extraDays = activeLockedChapters.length;
-            const totalDays = baseDays + extraDays;
+            setStatusMessage("Guardando capítulo...");
+            await new Promise(r => setTimeout(r, 1000));
 
-            const unlockDate = isMonetized
-                ? new Date(Date.now() + totalDays * 24 * 60 * 60 * 1000).toISOString()
-                : undefined;
+            if (isEditMode && chapterIdFromQuery) {
+                // EDITING EXISTING CHAPTER
+                await updateChapter(selectedWebtoonId, chapterIdFromQuery, {
+                    title: chapterTitle,
+                    images: finalImages
+                });
+            } else {
+                // NEW CHAPTER logic with sequential days
+                const activeLockedChapters = (targetWebtoon.chapters || []).filter(ch =>
+                    ch.isLocked && ch.unlockDate && new Date(ch.unlockDate) > new Date()
+                );
 
-            const newChapter: Chapter = {
-                id: Math.random().toString(36).substr(2, 9),
-                title: chapterTitle, date: "Hoy",
-                isLocked: isMonetized,
-                unlockCost: isMonetized ? 60 : undefined,
-                unlockDate: unlockDate,
-                images: chapterPages
-            };
-            await addChapter(selectedWebtoonId, newChapter);
+                // Base 3 days + 1 day per existing locked chapter
+                const baseDays = 3;
+                const extraDays = activeLockedChapters.length;
+                const totalDays = baseDays + extraDays;
+
+                const unlockDate = isMonetized
+                    ? new Date(Date.now() + totalDays * 24 * 60 * 60 * 1000).toISOString()
+                    : undefined;
+
+                const newChapter: Chapter = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    title: chapterTitle, date: "Hoy",
+                    isLocked: isMonetized,
+                    unlockCost: isMonetized ? 60 : undefined,
+                    unlockDate: unlockDate,
+                    images: finalImages
+                };
+                await addChapter(selectedWebtoonId, newChapter);
+            }
+
+            setIsSubmitting(false);
+            setIsSuccess(true);
+            setStatusMessage("¡Listo!");
+            flushObjectURLs();
+            setTimeout(() => router.push(`/news/${selectedWebtoonId}`), 2000);
+        } catch (error) {
+            console.error("Error submitting chapter:", error);
+            alert("Error al subir el capítulo. Reintentar.");
+            setIsSubmitting(false);
         }
-
-        setIsSubmitting(false);
-        setIsSuccess(true);
-        setTimeout(() => router.push(`/news/${selectedWebtoonId}`), 2000);
     };
 
     return (
@@ -486,10 +550,15 @@ function UploadPageContent() {
                         <button
                             onClick={handleSubmitWebtoon}
                             disabled={isSubmitting || isSuccess}
-                            className={`w-full py-5 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all ${isSuccess ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-pi-purple to-indigo-600 text-white'}`}
+                            className={`w-full py-5 rounded-2xl font-black text-sm shadow-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all ${isSuccess ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-pi-purple to-indigo-600 text-white'}`}
                         >
-                            {isSubmitting ? <Loader2 className="animate-spin" /> : <Upload />}
-                            {isSubmitting ? "PERSONALIZANDO..." : isSuccess ? "MUNDO CREADO" : "PUBLICAR MANGA"}
+                            <div className="flex items-center gap-3">
+                                {isSubmitting ? <Loader2 className="animate-spin" /> : <Upload />}
+                                {isSubmitting ? "PUBLICANDO..." : isSuccess ? "MUNDO CREADO" : "PUBLICAR MANGA"}
+                            </div>
+                            {isSubmitting && statusMessage && (
+                                <span className="text-[10px] opacity-70 animate-pulse">{statusMessage}</span>
+                            )}
                         </button>
                     </motion.div>
                 ) : (
@@ -520,7 +589,7 @@ function UploadPageContent() {
                                 <div className="space-y-2 max-h-[60vh] overflow-y-auto rounded-2xl bg-black/5 p-4 border-2 border-dashed border-gray-200">
                                     {chapterPages.length > 0 ? (
                                         chapterPages.map((page, i) => (
-                                            <img key={i} src={page} className="w-full rounded-lg shadow-md" alt={`Página ${i}`} />
+                                            <img key={page.id} src={page.url} className="w-full rounded-lg shadow-md" alt={`Página ${i}`} />
                                         ))
                                     ) : (
                                         <div className="py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">No hay páginas para previsualizar</div>
@@ -541,16 +610,16 @@ function UploadPageContent() {
                                         <AnimatePresence>
                                             {chapterPages.map((page, index) => (
                                                 <motion.div
-                                                    key={index}
+                                                    key={page.id}
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, scale: 0.95 }}
                                                     className="flex gap-4 items-center bg-gray-50/50 p-2 rounded-2xl border border-gray-100"
                                                 >
                                                     <div className="relative w-24 aspect-[2/3] rounded-lg overflow-hidden shadow-sm border border-gray-200 bg-white">
-                                                        <img src={page} className="w-full h-full object-cover" />
+                                                        <img src={page.url} className="w-full h-full object-cover" />
                                                         <div className="absolute top-0 left-0 bg-black/60 text-white text-[8px] font-black px-2 py-1 rounded-br-lg backdrop-blur-sm">
-                                                            No. {index}
+                                                            No. {index + 1}
                                                         </div>
                                                     </div>
 
@@ -663,33 +732,36 @@ function UploadPageContent() {
                         <button
                             onClick={handleSubmitChapter}
                             disabled={isSubmitting || isSuccess || chapterPages.length === 0}
-                            className={`w-full py-5 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all overflow-hidden relative group ${isSuccess
+                            className={`w-full py-5 rounded-2xl font-black text-sm shadow-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all overflow-hidden relative group ${isSuccess
                                 ? 'bg-green-500 text-white'
                                 : isMonetized
                                     ? 'bg-gradient-to-r from-amber-500 to-pi-gold text-white'
                                     : 'bg-black text-white'
                                 }`}
                         >
-                            {isSubmitting ? (
-                                <Loader2 className="animate-spin" />
-                            ) : isMonetized ? (
-                                <Coins size={20} fill="currentColor" />
-                            ) : (
-                                <Upload size={20} />
+                            <div className="flex items-center gap-3">
+                                {isSubmitting ? (
+                                    <Loader2 className="animate-spin" />
+                                ) : isMonetized ? (
+                                    <Coins size={20} fill="currentColor" />
+                                ) : (
+                                    <Upload size={20} />
+                                )}
+
+                                <span>
+                                    {isSubmitting
+                                        ? "PUBLICANDO..."
+                                        : isSuccess
+                                            ? (isEditMode ? "CAMBIOS GUARDADOS" : "CAPÍTULO PUBLICADO")
+                                            : isMonetized
+                                                ? "LANZAR EN EARLY ACCESS"
+                                                : (isEditMode ? "GUARDAR CAMBIOS" : "PUBLICAR CAPÍTULO GRATIS")}
+                                </span>
+                            </div>
+
+                            {isSubmitting && statusMessage && (
+                                <span className="text-[10px] opacity-70 animate-pulse">{statusMessage}</span>
                             )}
-
-                            <span>
-                                {isSubmitting
-                                    ? "PROCESANDO..."
-                                    : isSuccess
-                                        ? (isEditMode ? "CAMBIOS GUARDADOS" : "CAPÍTULO PUBLICADO")
-                                        : isMonetized
-                                            ? "LANZAR EN EARLY ACCESS"
-                                            : (isEditMode ? "GUARDAR CAMBIOS" : "PUBLICAR CAPÍTULO GRATIS")}
-                            </span>
-
-                            {/* Hover effect highlight */}
-                            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                         </button>
                     </motion.div>
                 )}

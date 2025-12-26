@@ -47,6 +47,9 @@ export const MISSION_POOL: MissionData[] = [
     { id: 'pool_26', title: 'Superfan', description: 'Valora 5 series y like a 5 caps.', reward: 25, target: 10, type: 'expert', category: 'engagement' },
     { id: 'pool_27', title: 'Crítico de Elite', description: 'Escribe 5 comentarios y valora 3 series.', reward: 25, target: 8, type: 'expert', category: 'social' },
     { id: 'pool_28', title: 'Embajador', description: 'Comparte 5 series diferentes.', reward: 25, target: 5, type: 'expert', category: 'social' },
+
+    // VIP Exclusive
+    { id: 'pool_vip_1', title: 'Coleccionista VIP', description: 'Descarga 1 capítulo para leer offline.', reward: 20, target: 1, type: 'medium', category: 'engagement' },
 ];
 
 export function getRandomMissions(): MissionData[] {

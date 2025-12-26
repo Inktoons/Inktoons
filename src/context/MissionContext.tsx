@@ -141,6 +141,8 @@ export function MissionProvider({ children }: { children: React.ReactNode }) {
                 if (mission.id === 'pool_22' || mission.id === 'pool_27') { increment = 1; subIncrementKey = 'comments'; }
             } else if (actionType === 'SHARE_SERIES') {
                 if (['pool_19', 'pool_28'].includes(mission.id)) increment = 1;
+            } else if (actionType === 'DOWNLOAD_CHAPTER') {
+                if (mission.id === 'pool_vip_1') increment = 1;
             }
             if (increment > 0) {
                 let validIncrement = true;

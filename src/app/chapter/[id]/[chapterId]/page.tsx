@@ -3,12 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, MessageSquare, ChevronLeft, ChevronRight, Settings, ImageIcon, Loader2 } from "lucide-react";
+import {
+    ArrowLeft, MessageSquare, ChevronLeft, ChevronRight,
+    Settings, ImageIcon, Loader2, Heart, Download, Crown, CheckCircle2
+} from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { mockNews } from "@/data/mockNews";
 import { useUserData } from "@/context/UserDataContext";
 import { useMissions } from "@/context/MissionContext";
-import { Heart } from "lucide-react";
 
 export default function ChapterReaderPage() {
     const params = useParams();
@@ -21,9 +23,12 @@ export default function ChapterReaderPage() {
     const chapterId = Array.isArray(rawChapterId) ? rawChapterId[0] : rawChapterId as string;
 
     const { getWebtoon } = useContent();
-    const { updateReadingProgress } = useUserData();
+    const { updateReadingProgress, userData } = useUserData();
     const { trackAction } = useMissions();
     const [isLiked, setIsLiked] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
 
     const webtoon = getWebtoon(id);
     const chapter = webtoon?.chapters?.find(c => c.id === chapterId);
@@ -110,6 +115,37 @@ export default function ChapterReaderPage() {
         }
     };
 
+    const handleDownload = async () => {
+        if (!isVIP || isDownloading) return;
+
+        setIsDownloading(true);
+        try {
+            // Sequential download for mobile stability
+            for (let i = 0; i < (chapter.images || []).length; i++) {
+                const imgUrl = chapter.images![i];
+                const response = await fetch(imgUrl);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${webtoon.title}_${chapter.title}_p${i + 1}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                // Pause between downloads
+                await new Promise(r => setTimeout(r, 300));
+            }
+            trackAction('DOWNLOAD_CHAPTER', { seriesId: id, chapterId });
+            alert("Descarga completada. Revisa tu carpeta de descargas.");
+        } catch (error) {
+            console.error("Download error:", error);
+            alert("Error al descargar. Asegúrate de tener conexión.");
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-black text-white flex flex-col overflow-x-hidden">
             {/* Header */}
@@ -127,6 +163,16 @@ export default function ChapterReaderPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {isVIP && (
+                        <button
+                            onClick={handleDownload}
+                            disabled={isDownloading}
+                            className={`p-2 rounded-full transition-all ${isDownloading ? "text-amber-500 animate-pulse" : "text-amber-400 hover:bg-amber-400/10"}`}
+                            title="Descargar para leer offline"
+                        >
+                            {isDownloading ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
+                        </button>
+                    )}
                     <button
                         onClick={() => {
                             if (!isLiked) {
@@ -139,7 +185,6 @@ export default function ChapterReaderPage() {
                         <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
                     </button>
                     <button className="p-2 hover:bg-white/10 rounded-full"><MessageSquare size={20} /></button>
-                    <button className="p-2 hover:bg-white/10 rounded-full"><Settings size={20} /></button>
                 </div>
             </header>
 

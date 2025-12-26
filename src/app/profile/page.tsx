@@ -34,7 +34,7 @@ export default function ProfilePage() {
     const { user } = usePi();
     const { userData, setProfileImage } = useUserData();
     const { theme, toggleTheme } = useTheme();
-    const { webtoons, deleteWebtoon } = useContent();
+    const { webtoons, deleteWebtoon, uploadImage } = useContent();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const menuItems = [
@@ -61,14 +61,22 @@ export default function ProfilePage() {
     const username = user?.username || "Pionero";
     const initial = username.charAt(0).toUpperCase();
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            try {
+                // Show a preview immediately using a blob URL
+                const blobUrl = URL.createObjectURL(file);
+                setProfileImage(blobUrl);
+
+                // Upload to Supabase Storage
+                const finalUrl = await uploadImage(file);
+                if (finalUrl) {
+                    setProfileImage(finalUrl);
+                }
+            } catch (err) {
+                console.error("Profile upload failed:", err);
+            }
         }
     };
 
