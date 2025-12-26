@@ -31,50 +31,50 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const initPi = useCallback(async () => {
         if (typeof window === "undefined" || initialized.current) return;
 
-        // Intentar inicializar si existe el SDK
         if (window.Pi) {
             try {
                 const hostname = window.location.hostname;
-                // Si estamos en Vercel, Ngrok o Local, activamos Sandbox para usar Test-Pi
-                const isDevEnv = hostname === "localhost" || hostname.includes("ngrok") || hostname.includes("vercel.app");
+                // Forzamos sandbox en Vercel/Local para que Test-Pi funcione
+                const isSandboxRequested = hostname === "localhost" || hostname.includes("ngrok") || hostname.includes("vercel.app");
 
-                await window.Pi.init({ version: "2.0", sandbox: isDevEnv });
+                await window.Pi.init({ version: "2.0", sandbox: isSandboxRequested });
                 initialized.current = true;
-                console.log(`[PI] SDK Inicializado con éxito. Sandbox: ${isDevEnv}`);
+                console.log("[PI] Modo Sandbox activado para Testnet");
             } catch (error) {
-                console.log("[PI] El SDK ya estaba inicializado o hubo un error leve.");
+                console.log("[PI] Nota: El SDK ya estaba listo.");
             }
         }
         setLoading(false);
     }, []);
 
     useEffect(() => {
-        // Ejecutar con un ligero retraso para asegurar que el script de layout.tsx se cargue
-        const timer = setTimeout(initPi, 1500);
+        const timer = setTimeout(initPi, 1000);
         return () => clearTimeout(timer);
     }, [initPi]);
 
     const authenticate = async () => {
         if (!window.Pi) {
-            alert("El sistema de Pi aún se está cargando. Espera 2 segundos y vuelve a intentarlo.");
+            alert("El SDK de Pi no está listo. Prueba a refrescar la página en el Pi Browser.");
             return;
         }
 
         try {
             const scopes = ["username", "payments", "wallet_address"];
-            const onIncompletePaymentFound = async (payment: any) => {
-                await fetch("/api/pi/complete", {
+            const onIncompletePaymentFound = (payment: any) => {
+                fetch("/api/pi/complete", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction?.txid || "" }),
-                });
+                }).catch(console.error);
             };
 
             const auth = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
             setUser(auth.user);
         } catch (error: any) {
             if (error.message?.includes("cancelled")) return;
-            alert("Error: Para conectar, asegúrate de estar usando el Sandbox o la URL de Desarrollo oficial.");
+
+            // Mensaje de ayuda estratégica
+            alert("¡Casi listo! Para conectar tu cuenta en esta versión de prueba, asegúrate de estar en el modo Sandbox de Pi Browser.");
             console.error(error);
         }
     };
@@ -91,15 +91,21 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                     });
                 },
                 onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                    await fetch("/api/pi/complete", {
+                    const res = await fetch("/api/pi/complete", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ paymentId, txid }),
                     });
-                    if (onSuccess) onSuccess();
+                    if (res.ok && onSuccess) onSuccess();
                 },
                 onCancel: () => { },
-                onError: (error: any) => alert("Error de pago: " + error.message),
+                onError: (error: any) => {
+                    if (error.message?.includes("Sandbox")) {
+                        alert("Este pago requiere modo Sandbox activo (Test-Pi).");
+                    } else {
+                        alert("Error en el pago: " + error.message);
+                    }
+                },
             });
         } catch (error: any) {
             console.error("Payment error:", error);
