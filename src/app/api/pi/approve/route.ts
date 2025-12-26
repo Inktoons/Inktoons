@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-    const timestamp = Date.now();
+    const timestamp = new Date().toISOString();
     try {
         const { paymentId } = await request.json();
-        // Intentamos leer de todas las fuentes posibles
         const apiKey = (process.env.PI_API_KEY || process.env.NEXT_PUBLIC_PI_API_KEY || "").trim();
 
+        // LOG PARA DEBUG (Se ve en el panel de Vercel Logs)
+        console.log(`[PI_PAYMENT_DEBUG] [${timestamp}]`);
+        console.log(`- PaymentID: ${paymentId}`);
+        console.log(`- API Key exists: ${apiKey ? "YES" : "NO"}`);
+        if (apiKey) {
+            console.log(`- API Key Length: ${apiKey.length}`);
+            console.log(`- API Key Start: ${apiKey.substring(0, 4)}...`);
+        }
+
         if (!apiKey) {
-            console.error("DEBUG: No API Key found in Vercel environment");
             return NextResponse.json({
-                error: `[V3-${timestamp}] Server error: La llave API no ha sido cargada en Vercel. Por favor, revisa la configuración de variables de entorno.`
+                error: `[V4] Error de configuración: No se encontró la LLAVE_API en Vercel.`
             }, { status: 500 });
         }
 
@@ -22,17 +29,19 @@ export async function POST(request: Request) {
             },
         });
 
+        const responseText = await response.text();
+        console.log(`- Pi API Response (${response.status}): ${responseText}`);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            if (errorText.includes("already_approved")) {
-                return NextResponse.json({ success: true, message: "Pase libre" });
+            if (responseText.includes("already_approved")) {
+                return NextResponse.json({ success: true, message: "OK" });
             }
-            return NextResponse.json({ error: errorText }, { status: response.status });
+            return NextResponse.json({ error: responseText }, { status: response.status });
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
-    } catch (error) {
-        return NextResponse.json({ error: `[V3-EX-${timestamp}] error interno` }, { status: 500 });
+        return NextResponse.json(JSON.parse(responseText));
+    } catch (error: any) {
+        console.error("- Error crítico en API:", error);
+        return NextResponse.json({ error: `[V4-ERROR] ${error.message}` }, { status: 500 });
     }
 }
