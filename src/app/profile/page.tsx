@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useTheme } from "@/components/ThemeHandler";
+import TopNavbar from "@/components/TopNavbar";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -86,17 +87,8 @@ export default function ProfilePage() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col transition-colors duration-300">
-            {/* Header style matching the reference image */}
-            <header className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-50 z-10">
-                <div className="flex items-center gap-2">
-                    <BookOpen className="text-pi-purple" size={28} />
-                    <span className="text-2xl font-black text-pi-purple tracking-tighter">Inktoons</span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button className="p-2 text-gray-400 hover:text-black transition-colors"><Bell size={24} /></button>
-                    <button className="p-2 text-gray-400 hover:text-black transition-colors"><Menu size={24} /></button>
-                </div>
-            </header>
+            {/* Top Navbar */}
+            <TopNavbar />
 
             <main className="flex-1 max-w-md mx-auto w-full px-6 py-8">
                 {/* Profile Card Section */}

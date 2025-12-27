@@ -22,6 +22,7 @@ import { mockNews } from "@/data/mockNews";
 import { useContent } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
 import { motion, AnimatePresence } from "framer-motion";
+import TopNavbar from "@/components/TopNavbar";
 
 export default function ExplorePage() {
     const router = useRouter();
@@ -95,8 +96,9 @@ export default function ExplorePage() {
 
     return (
         <div className="min-h-screen bg-white text-gray-900 flex flex-col font-sans">
+            <TopNavbar />
             {/* 1. TOP SEARCH BAR */}
-            <div className="p-4 pt-6 bg-white">
+            <div className="p-4 bg-white">
                 <div className="relative group">
                     <div className={`absolute inset-0 bg-[#FF4D4D]/5 rounded-lg blur-md opacity-0 group-focus-within:opacity-100 transition-opacity`} />
                     <input

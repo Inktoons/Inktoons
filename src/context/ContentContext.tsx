@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { mockNews } from "@/data/mockNews";
 import { SupabaseService, Webtoon, Chapter } from "@/lib/supabaseService";
+import { useUserData } from "@/context/UserDataContext";
 
 interface ContentContextType {
     webtoons: Webtoon[];
@@ -20,6 +21,7 @@ const ContentContext = createContext<ContentContextType | undefined>(undefined);
 export function ContentProvider({ children }: { children: ReactNode }) {
     const [webtoons, setWebtoons] = useState<Webtoon[]>([]);
     const [loading, setLoading] = useState(true);
+    const { userData, addNotification } = useUserData();
 
     useEffect(() => {
         async function loadWebtoons() {
@@ -66,6 +68,38 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         }
         loadWebtoons();
     }, []);
+
+    // Check for new chapters and notify
+    useEffect(() => {
+        if (loading || webtoons.length === 0 || !userData) return;
+
+        webtoons.forEach(webtoon => {
+            const isFav = userData.favorites.includes(webtoon.id);
+            const isFollowing = userData.following.includes(webtoon.author);
+
+            if (isFav || isFollowing) {
+                const latestChapterId = webtoon.chapters?.[0]?.id;
+                if (!latestChapterId) return;
+
+                // Check if this chapter is already "seen" or read
+                const hasRead = (userData.readChapters[webtoon.id] || []).includes(latestChapterId);
+
+                // Use a local ref or specific field to avoid spamming the same notification
+                // For now, let's use a simple localStorage check for "notified_chapters"
+                const notifiedKey = `notified_ch_${webtoon.id}_${latestChapterId}`;
+                if (!hasRead && !localStorage.getItem(notifiedKey)) {
+                    addNotification({
+                        type: 'CHAPTER',
+                        title: '¡Nuevo Capítulo!',
+                        message: `Se ha publicado un nuevo capítulo de "${webtoon.title}" por ${webtoon.author}.`,
+                        link: `/news/${webtoon.id}`,
+                        icon: '📖'
+                    });
+                    localStorage.setItem(notifiedKey, 'true');
+                }
+            }
+        });
+    }, [webtoons, loading, userData, addNotification]);
 
     const addWebtoon = async (webtoon: Webtoon) => {
         try {

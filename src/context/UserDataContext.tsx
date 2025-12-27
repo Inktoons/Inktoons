@@ -4,6 +4,17 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { usePi } from "@/components/PiNetworkProvider";
 import { SupabaseService } from "@/lib/supabaseService";
 
+export interface Notification {
+    id: string;
+    type: 'CHAPTER' | 'MISSION' | 'FOLLOW' | 'SYSTEM';
+    title: string;
+    message: string;
+    date: number;
+    read: boolean;
+    link?: string;
+    icon?: string;
+}
+
 interface UserData {
     favorites: string[];
     history: string[];
@@ -13,6 +24,7 @@ interface UserData {
     readChapters: Record<string, string[]>;
     profileImage?: string;
     balance: number;
+    notifications?: Notification[];
     subscription?: {
         type: '1m' | '6m' | '1y';
         expiresAt: number;
@@ -36,6 +48,9 @@ interface UserDataContextType {
     getLastReadChapter: (id: string) => string | undefined;
     isChapterRead: (webtoonId: string, chapterId: string) => boolean;
     updateReadingProgress: (webtoonId: string, chapterId: string) => void;
+    addNotification: (notification: Omit<Notification, 'id' | 'date' | 'read'>) => void;
+    markNotificationRead: (id: string) => void;
+    clearNotifications: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -52,6 +67,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         readChapters: {},
         profileImage: undefined,
         balance: 50,
+        notifications: [],
     });
 
     useEffect(() => {
@@ -143,6 +159,32 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         setUserData(prev => ({ ...prev, balance: (prev.balance || 0) + amount }));
     }, []);
 
+    const addNotification = useCallback((notif: Omit<Notification, 'id' | 'date' | 'read'>) => {
+        setUserData(prev => {
+            const newNotif: Notification = {
+                ...notif,
+                id: Math.random().toString(36).substr(2, 9),
+                date: Date.now(),
+                read: false
+            };
+            return {
+                ...prev,
+                notifications: [newNotif, ...(prev.notifications || [])].slice(0, 50)
+            };
+        });
+    }, []);
+
+    const markNotificationRead = useCallback((id: string) => {
+        setUserData(prev => ({
+            ...prev,
+            notifications: (prev.notifications || []).map(n => n.id === id ? { ...n, read: true } : n)
+        }));
+    }, []);
+
+    const clearNotifications = useCallback(() => {
+        setUserData(prev => ({ ...prev, notifications: [] }));
+    }, []);
+
     const setSubscription = useCallback((type: '1m' | '6m' | '1y', durationInMonths: number) => {
         setUserData(prev => {
             const now = Date.now();
@@ -162,7 +204,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     return (
         <UserDataContext.Provider value={{
-            userData, loading, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress
+            userData, loading, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress,
+            addNotification, markNotificationRead, clearNotifications
         }}>
             {children}
         </UserDataContext.Provider>

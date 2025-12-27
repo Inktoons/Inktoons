@@ -8,6 +8,7 @@ import { usePi } from "@/components/PiNetworkProvider";
 import { mockNews } from "@/data/mockNews";
 import { useContent } from "@/context/ContentContext";
 import { Search, Bell, Menu, User, Zap, Star, TrendingUp, Clock, Home as HomeIcon, BookOpen, Upload } from "lucide-react";
+import TopNavbar from "@/components/TopNavbar";
 
 export default function Home() {
   const router = useRouter();
@@ -52,54 +53,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-pi-gold selection:text-black">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="text-2xl font-extrabold tracking-tighter text-pi-purple cursor-pointer" onClick={() => router.push("/")}>
-            Inktoons
-          </div>
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-gray-500">
-            <a href="#" className="text-black border-b-2 border-black pb-1">Inicio</a>
-            <a href="#" className="hover:text-black transition-colors">Cómics</a>
-            <a href="#" className="hover:text-black transition-colors">Novelas</a>
-            <a href="#" className="hover:text-black transition-colors">Comunidad</a>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center bg-gray-100 rounded-full px-4 py-2 w-64">
-            <Search size={16} className="text-gray-400 mr-2" />
-            <input type="text" placeholder="Buscar historias..." className="bg-transparent text-sm outline-none w-full" />
-          </div>
-
-          {user ? (
-            <div className="flex items-center gap-3">
-
-              <button
-                onClick={() => router.push('/wallet')}
-                className="p-2 text-pi-purple hover:bg-purple-50 rounded-full transition-colors"
-              >
-                <Zap size={20} fill="currentColor" />
-              </button>
-              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"><Bell size={20} /></button>
-              <div
-                onClick={() => router.push("/profile")}
-                className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white cursor-pointer shadow-sm active:scale-95 transition-transform"
-              >
-                <User size={16} />
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={authenticate}
-              disabled={loading}
-              className={`btn-tapas text-sm shadow-sm ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {loading ? "Cargando..." : "Conectar Pi"}
-            </button>
-          )}
-          <button className="lg:hidden p-2 text-gray-500"><Menu size={24} /></button>
-        </div>
-      </header>
+      <TopNavbar />
 
       <main className="max-w-[1200px] mx-auto px-4 py-6">
         {/* Promo Banner */}

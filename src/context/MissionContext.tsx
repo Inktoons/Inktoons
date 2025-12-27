@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { MissionData, getRandomMissions, MISSION_POOL } from '@/lib/missions';
 import { usePi } from '@/components/PiNetworkProvider';
 import { SupabaseService } from '@/lib/supabaseService';
+import { useUserData } from '@/context/UserDataContext';
 
 export type ActiveMission = MissionData & {
     progress: number;
@@ -28,6 +29,7 @@ export function MissionProvider({ children }: { children: React.ReactNode }) {
     const [missions, setMissions] = useState<ActiveMission[]>([]);
     const [loading, setLoading] = useState(true);
     const [lastActionTime, setLastActionTime] = useState<number>(0);
+    const { addNotification } = useUserData();
 
     useEffect(() => {
         const loadMissions = async () => {
@@ -162,7 +164,18 @@ export function MissionProvider({ children }: { children: React.ReactNode }) {
                 }
                 if (validIncrement) {
                     const newProgress = Math.min(mission.progress + increment, mission.target);
-                    if (newProgress !== mission.progress) return { ...mission, progress: newProgress, progressDetails: newDetails };
+                    if (newProgress !== mission.progress) {
+                        // If just completed
+                        if (newProgress >= mission.target) {
+                            addNotification({
+                                type: 'MISSION',
+                                title: '¡Misión Completada!',
+                                message: `Has completado "${mission.title}". ¡Ve a reclamar tu recompensa!`,
+                                icon: '🎯'
+                            });
+                        }
+                        return { ...mission, progress: newProgress, progressDetails: newDetails };
+                    }
                 }
             }
             return mission;

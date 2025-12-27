@@ -12,6 +12,7 @@ import {
     AlertCircle,
     Star,
     Heart,
+    Bell,
     BookOpen,
     Info,
     MessageSquare,
@@ -37,6 +38,7 @@ import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
 import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
+import NotificationDropdown from "@/components/NotificationDropdown";
 
 interface Comment {
     id: string;
@@ -78,6 +80,10 @@ export default function MangaDetailPage() {
     const [activeTab, setActiveTab] = useState("DETALLES");
     const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
     const [showUnlockModal, setShowUnlockModal] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    const unreadCount = (userData.notifications || []).filter(n => !n.read).length;
+    const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
 
     // Comments State
     const [comments, setComments] = useState<Comment[]>([
@@ -228,15 +234,52 @@ export default function MangaDetailPage() {
                     </button>
                     <span className="font-black text-lg">Manga</span>
                 </div>
-                <div className="flex items-center gap-4 text-gray-600">
-                    <button className="hover:text-black transition-colors"><Download size={22} /></button>
-                    <button
-                        onClick={() => trackAction('SHARE_SERIES', { seriesId: news.id })}
-                        className="hover:text-black transition-colors"
-                    >
-                        <Share2 size={22} />
-                    </button>
-                    <button className="hover:text-black transition-colors"><AlertCircle size={22} /></button>
+
+                <div className="flex items-center gap-2 md:gap-4">
+                    <div className="hidden md:flex items-center gap-3 text-gray-400 mr-2">
+                        <button className="hover:text-black transition-colors"><Download size={20} /></button>
+                        <button
+                            onClick={() => trackAction('SHARE_SERIES', { seriesId: news.id })}
+                            className="hover:text-black transition-colors"
+                        >
+                            <Share2 size={20} />
+                        </button>
+                    </div>
+
+                    {user && (
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className={`p-2 rounded-full transition-colors relative ${showNotifications ? 'bg-pi-purple/10 text-pi-purple' : 'text-gray-500 hover:bg-gray-100'}`}
+                                >
+                                    <Bell size={22} />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+                                <NotificationDropdown isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+                            </div>
+
+                            <div
+                                onClick={() => router.push("/profile")}
+                                className="relative cursor-pointer group ml-1"
+                            >
+                                {isVIP && (
+                                    <div className="absolute -inset-1 bg-gradient-to-tr from-amber-300 via-yellow-500 to-amber-600 rounded-full animate-spin-slow opacity-80 blur-[1px]" />
+                                )}
+                                <div className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white shadow-sm overflow-hidden relative z-10 border-2 border-white">
+                                    {userData.profileImage ? (
+                                        <img src={userData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-[10px] font-bold">{user.username.charAt(0).toUpperCase()}</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </nav>
 

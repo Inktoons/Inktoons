@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Wallet, TrendingUp, Zap, ShieldCheck, RefreshCw, AlertCircle, X, Gift, Info, Star, CheckCircle2, Circle, Trophy, BookOpen, Users, Compass, MessageCircle, Target, Crown, Download } from "lucide-react";
+import { ArrowLeft, Wallet, TrendingUp, Zap, ShieldCheck, RefreshCw, AlertCircle, X, Gift, Info, Star, CheckCircle2, Circle, Trophy, BookOpen, Users, Compass, MessageCircle, Target, Crown, Download, Bell } from "lucide-react";
+import NotificationDropdown from "@/components/NotificationDropdown";
 import { useUserData } from "@/context/UserDataContext";
 import { AnimatePresence } from "framer-motion";
 import { usePi } from "@/components/PiNetworkProvider";
@@ -17,6 +18,10 @@ export default function WalletPage() {
     const [loadingPack, setLoadingPack] = useState<number | null>(null);
     const [loadingPass, setLoadingPass] = useState<string | null>(null);
     const [showExplanation, setShowExplanation] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    const unreadCount = (userData.notifications || []).filter(n => !n.read).length;
+    const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
 
     const { missions, regenerateMissions, claimMission, replaceMission } = useMissions();
 
@@ -210,11 +215,46 @@ export default function WalletPage() {
     return (
         <div className="min-h-screen bg-white text-foreground">
             {/* Header */}
-            <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex items-center gap-4">
-                <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
-                    <ArrowLeft size={20} />
-                </button>
-                <h1 className="font-black text-xl">Monedero</h1>
+            <div className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
+                        <ArrowLeft size={20} />
+                    </button>
+                    <h1 className="font-black text-xl">Monedero</h1>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className={`p-2 rounded-full transition-colors relative ${showNotifications ? 'bg-pi-purple/10 text-pi-purple' : 'text-gray-500 hover:bg-gray-100'}`}
+                        >
+                            <Bell size={22} />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                        <NotificationDropdown isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+                    </div>
+
+                    <div
+                        onClick={() => router.push("/profile")}
+                        className="relative cursor-pointer group ml-1"
+                    >
+                        {isVIP && (
+                            <div className="absolute -inset-1 bg-gradient-to-tr from-amber-300 via-yellow-500 to-amber-600 rounded-full animate-spin-slow opacity-80 blur-[1px]" />
+                        )}
+                        <div className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white shadow-sm overflow-hidden relative z-10 border-2 border-white">
+                            {userData.profileImage ? (
+                                <img src={userData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-[10px] font-bold">{user?.username?.charAt(0).toUpperCase() || 'P'}</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <main className="max-w-md mx-auto px-6 py-8">
@@ -356,7 +396,7 @@ export default function WalletPage() {
 
                 {/* Packages */}
                 <h2 className="font-black text-lg mb-4 flex items-center gap-2">
-                    <Zap className="text-pi-purple ml-1" size={20} fill="currentColor" />
+                    <img src="/icon.png" alt="Inks" className="w-6 h-6 object-contain ml-1" />
                     Recargar Inks
                 </h2>
 
