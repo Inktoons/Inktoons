@@ -9,15 +9,15 @@ import { MissionProvider } from "@/context/MissionContext";
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <PiProvider>
-            <ContentProvider>
-                <UserDataProvider>
+            <UserDataProvider>
+                <ContentProvider>
                     <MissionProvider>
                         <ThemeProvider>
                             {children}
                         </ThemeProvider>
                     </MissionProvider>
-                </UserDataProvider>
-            </ContentProvider>
+                </ContentProvider>
+            </UserDataProvider>
         </PiProvider>
     );
 }
