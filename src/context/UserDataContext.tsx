@@ -25,6 +25,8 @@ interface UserData {
     profileImage?: string;
     balance: number;
     notifications?: Notification[];
+    censorshipEnabled?: boolean;
+    walletAddress?: string;
     subscription?: {
         type: '1m' | '6m' | '1y';
         expiresAt: number;
@@ -51,6 +53,8 @@ interface UserDataContextType {
     addNotification: (notification: Omit<Notification, 'id' | 'date' | 'read'>) => void;
     markNotificationRead: (id: string) => void;
     clearNotifications: () => void;
+    toggleCensorship: () => void;
+    updateWalletAddress: (address: string) => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -68,6 +72,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         profileImage: undefined,
         balance: 50,
         notifications: [],
+        censorshipEnabled: true,
+        walletAddress: "",
     });
 
     useEffect(() => {
@@ -159,6 +165,14 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         setUserData(prev => ({ ...prev, balance: (prev.balance || 0) + amount }));
     }, []);
 
+    const toggleCensorship = useCallback(() => {
+        setUserData(prev => ({ ...prev, censorshipEnabled: !prev.censorshipEnabled }));
+    }, []);
+
+    const updateWalletAddress = useCallback((address: string) => {
+        setUserData(prev => ({ ...prev, walletAddress: address }));
+    }, []);
+
     const addNotification = useCallback((notif: Omit<Notification, 'id' | 'date' | 'read'>) => {
         setUserData(prev => {
             const newNotif: Notification = {
@@ -205,7 +219,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     return (
         <UserDataContext.Provider value={{
             userData, loading, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress,
-            addNotification, markNotificationRead, clearNotifications
+            addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress
         }}>
             {children}
         </UserDataContext.Provider>

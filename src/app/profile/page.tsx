@@ -24,6 +24,9 @@ import {
     BarChart2,
     MessageCircle,
     Star,
+    Shield,
+    Wallet,
+    Save,
     Crown
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
@@ -33,7 +36,7 @@ import TopNavbar from "@/components/TopNavbar";
 export default function ProfilePage() {
     const router = useRouter();
     const { user } = usePi();
-    const { userData, setProfileImage } = useUserData();
+    const { userData, setProfileImage, toggleCensorship, updateWalletAddress } = useUserData();
     const { theme, toggleTheme } = useTheme();
     const { webtoons, deleteWebtoon, uploadImage } = useContent();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -145,7 +148,7 @@ export default function ProfilePage() {
                 {/* MY CONTENT SECTION */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-black dark:text-white flex items-center gap-2">
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                             <BookOpen className="text-pi-purple" size={20} />
                             MI CONTENIDO
                         </h3>
@@ -213,6 +216,60 @@ export default function ProfilePage() {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Config Sections */}
+                <div className="space-y-4 mb-8">
+                    {/* Content Censorship Toggle */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        onClick={toggleCensorship}
+                        className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between group cursor-pointer hover:border-pi-purple/30 transition-all active:scale-[0.98]"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center">
+                                <Shield className="text-pink-500" size={22} />
+                            </div>
+                            <div>
+                                <span className="font-bold text-slate-700 block">Filtro de Contenido</span>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Censurar +18 / Gore</span>
+                            </div>
+                        </div>
+                        <div className={`relative w-11 h-6 rounded-full transition-colors ${userData.censorshipEnabled ? 'bg-pi-purple' : 'bg-slate-200'}`}>
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${userData.censorshipEnabled ? 'left-6' : 'left-1'}`} />
+                        </div>
+                    </motion.div>
+
+                    {/* Pi Wallet Address */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="bg-white rounded-2xl border border-slate-200 p-4 transition-all hover:border-pi-purple/30"
+                    >
+                        <div className="flex items-center gap-4 mb-3">
+                            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                                <Wallet className="text-amber-500" size={22} />
+                            </div>
+                            <div>
+                                <span className="font-bold text-slate-700 block">Tu Billetera Pi</span>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Para recibir propinas</span>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Pega tu dirección pública aquí..."
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-pi-purple/50 focus:ring-1 focus:ring-pi-purple/50 transition-all font-mono"
+                                defaultValue={userData.walletAddress || ""}
+                                onBlur={(e) => updateWalletAddress(e.target.value)}
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                <Save size={14} />
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
 
                 {/* List Items Sections */}
