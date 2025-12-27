@@ -53,7 +53,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute top-14 right-[-5px] md:right-0 w-[85vw] md:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110] mx-4 md:mx-0 origin-top-right"
+                        className="fixed top-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm md:absolute md:top-14 md:right-0 md:left-auto md:translate-x-0 md:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110]"
                     >
                         {/* Header */}
                         <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
