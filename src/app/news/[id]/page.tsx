@@ -723,7 +723,7 @@ export default function MangaDetailPage() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => user ? setShowCommentInput(true) : authenticate()}
-                                className="fixed bottom-6 right-6 w-14 h-14 bg-[#FF6B6B] text-white rounded-full shadow-lg shadow-red-200 flex items-center justify-center z-40"
+                                className="fixed bottom-24 right-6 w-14 h-14 bg-[#FF6B6B] text-white rounded-full shadow-lg shadow-red-200 flex items-center justify-center z-40"
                             >
                                 <PenTool size={24} />
                             </motion.button>
