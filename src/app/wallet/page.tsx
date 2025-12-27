@@ -258,6 +258,18 @@ export default function WalletPage() {
             </div>
 
             <main className="max-w-md mx-auto px-6 py-8">
+                {/* Hero Promotion Message */}
+                <div className="mb-10 text-center">
+                    <p className="inline-block bg-pi-purple/10 text-pi-purple text-[10px] font-black px-4 py-1 rounded-full border border-pi-purple/20 uppercase tracking-widest mb-4">
+                        Bienvenido a la Nueva Era
+                    </p>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter leading-none mb-3">
+                        Potenciando a <span className="text-pi-purple">Artistas</span> en Pi Network
+                    </h2>
+                    <p className="text-gray-500 font-medium text-sm leading-relaxed max-w-[280px] mx-auto">
+                        Únete a la plataforma premium de cómics creada para pioneros como tú.
+                    </p>
+                </div>
 
                 {/* Balance Card */}
                 <motion.div

@@ -99,9 +99,6 @@ export default function TopNavbar() {
                         {loading ? "..." : "Conectar Pi"}
                     </button>
                 )}
-                <button className="lg:hidden p-2 text-gray-500 hover:text-black transition-colors">
-                    <Menu size={24} />
-                </button>
             </div>
         </header>
     );
