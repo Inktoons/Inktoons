@@ -28,7 +28,10 @@ import {
     CheckCircle2,
     PlusCircle,
     Edit3,
-    Crown
+    Crown,
+    Home as HomeIcon,
+    Search,
+    User
 } from "lucide-react";
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
@@ -830,6 +833,29 @@ export default function MangaDetailPage() {
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-8 py-4 flex items-center justify-between z-50">
+                <button onClick={() => router.push("/")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <HomeIcon size={22} />
+                    <span className="text-[10px] font-bold">Inicio</span>
+                </button>
+                <button onClick={() => router.push("/explore")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <Search size={22} />
+                    <span className="text-[10px] font-bold">Explorar</span>
+                </button>
+                <button onClick={() => router.push("/library")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <BookOpen size={22} />
+                    <span className="text-[10px] font-bold">Biblioteca</span>
+                </button>
+                <button onClick={() => router.push("/profile")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <User size={22} />
+                    <span className="text-[10px] font-bold">Perfil</span>
+                </button>
+            </nav>
+
+            {/* Safe Area Spacer */}
+            <div className="h-10" />
         </div>
     );
 }
