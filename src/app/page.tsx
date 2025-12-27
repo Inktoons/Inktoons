@@ -51,7 +51,7 @@ export default function Home() {
   const categories = ["Spotlight", "Diario", "Nuevo", "Popular", "Gratis", "WUF", "Completado"];
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-pi-gold selection:text-black">
+    <div className="min-h-screen bg-background dark:bg-[#0a0a0a] text-foreground dark:text-gray-100 selection:bg-pi-gold selection:text-black transition-colors duration-300">
       {/* Top Navbar */}
       <TopNavbar />
 
@@ -81,7 +81,7 @@ export default function Home() {
             <h3 className="text-xl font-black flex items-center gap-2">
               {activeTab === "Nuevo" ? "🌱 Recién Llegados 🌱" : activeTab === "Popular" ? "🔥 Lo más Leído 🔥" : "✨ Destacados de Inktoons 2025 ✨"}
             </h3>
-            <button className="text-gray-400 hover:text-black font-bold text-sm transition-colors">Ver más</button>
+            <button className="text-gray-400 hover:text-black dark:hover:text-white font-bold text-sm transition-colors">Ver más</button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-4">
@@ -115,7 +115,7 @@ export default function Home() {
             {/* Add more placeholders for demo */}
             {[4, 5, 6, 7, 8, 9, 10, 11].map((n) => (
               <div key={n} className="tapas-card group cursor-pointer opacity-40">
-                <div className="relative aspect-[3/4.5] w-full bg-gray-200 animate-pulse" />
+                <div className="relative aspect-[3/4.5] w-full bg-gray-200 dark:bg-white/10 animate-pulse" />
               </div>
             ))}
           </div>
@@ -127,14 +127,14 @@ export default function Home() {
             <h3 className="text-xl font-black flex items-center gap-2">
               🔥 Tendencias en el Ecosistema
             </h3>
-            <button className="text-gray-400 hover:text-black font-bold text-sm transition-colors">Ver más</button>
+            <button className="text-gray-400 hover:text-black dark:hover:text-white font-bold text-sm transition-colors">Ver más</button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {displayWebtoons.slice(0, 4).map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-xl p-4 flex gap-4 border border-gray-100 hover:border-pi-purple/30 transition-all cursor-pointer group shadow-sm hover:shadow-md"
+                className="bg-white dark:bg-[#111] rounded-xl p-4 flex gap-4 border border-gray-100 dark:border-white/5 hover:border-pi-purple/30 transition-all cursor-pointer group shadow-sm hover:shadow-md"
                 onClick={() => router.push(`/news/${item.id}`)}
               >
                 <div className="relative w-24 h-32 flex-shrink-0 rounded-lg overflow-hidden shadow-sm">
@@ -142,7 +142,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col justify-center">
                   <span className="text-[10px] font-bold text-pi-purple uppercase mb-1 tracking-wider">{item.category}</span>
-                  <h4 className="font-bold text-lg leading-tight mb-2 group-hover:text-pi-purple transition-colors">
+                  <h4 className="font-bold text-lg leading-tight mb-2 text-slate-900 dark:text-white group-hover:text-pi-purple transition-colors">
                     {item.title}
                   </h4>
                   <div className="flex items-center gap-3 text-xs text-gray-400">
@@ -157,7 +157,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-20 py-16 bg-white border-t border-gray-100">
+      <footer className="mt-20 py-16 bg-white dark:bg-[#0a0a0a] border-t border-gray-100 dark:border-white/10">
         <div className="max-w-[1200px] mx-auto px-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 text-center md:text-left">
           <div className="col-span-2">
             <div className="text-2xl font-black text-pi-purple mb-4 tracking-tighter">Inktoons</div>
@@ -165,54 +165,54 @@ export default function Home() {
               Tu portal de entretenimiento y noticias descentralizado en la red Pi. Lee, comparte y crece con los mejores creadores.
             </p>
             <div className="flex justify-center md:justify-start gap-4">
-              <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm cursor-pointer" />
-              <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm cursor-pointer" />
-              <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm cursor-pointer" />
+              <div className="w-9 h-9 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shadow-sm cursor-pointer" />
+              <div className="w-9 h-9 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shadow-sm cursor-pointer" />
+              <div className="w-9 h-9 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shadow-sm cursor-pointer" />
             </div>
           </div>
           <div>
             <h5 className="font-bold text-sm mb-4">Explorar</h5>
             <ul className="text-sm text-gray-400 space-y-3">
-              <li className="hover:text-black cursor-pointer transition-colors">Cómics</li>
-              <li className="hover:text-black cursor-pointer transition-colors">Novelas</li>
-              <li className="hover:text-black cursor-pointer transition-colors">Originales</li>
-              <li className="hover:text-black cursor-pointer transition-colors">Noticias</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Cómics</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Novelas</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Originales</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Noticias</li>
             </ul>
           </div>
           <div>
             <h5 className="font-bold text-sm mb-4">Ayuda</h5>
             <ul className="text-sm text-gray-400 space-y-3">
-              <li className="hover:text-black cursor-pointer transition-colors">Centro de ayuda</li>
-              <li className="hover:text-black cursor-pointer transition-colors">Pautas</li>
-              <li className="hover:text-black cursor-pointer transition-colors">Privacidad</li>
-              <li className="hover:text-black cursor-pointer transition-colors">Términos</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Centro de ayuda</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Pautas</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Privacidad</li>
+              <li className="hover:text-black dark:hover:text-white cursor-pointer transition-colors">Términos</li>
             </ul>
           </div>
         </div>
-        <div className="max-w-[1200px] mx-auto px-4 mt-16 pt-8 border-t border-gray-100 text-[10px] text-gray-400 text-center tracking-widest uppercase font-bold">
+        <div className="max-w-[1200px] mx-auto px-4 mt-16 pt-8 border-t border-gray-100 dark:border-white/10 text-[10px] text-gray-400 text-center tracking-widest uppercase font-bold">
           © {new Date().getFullYear()} Inktoons Foundation Inc. Parte del ecosistema Pi Network.
         </div>
       </footer>
 
       {/* Mobile Bottom Nav style matching the reference */}
-      <nav className="fixed bottom-0 left-0 right-0 lg:hidden bg-white/80 backdrop-blur-xl border-t border-gray-100 px-8 py-4 flex items-center justify-between z-50">
+      <nav className="fixed bottom-0 left-0 right-0 lg:hidden bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-gray-100 dark:border-white/10 px-8 py-4 flex items-center justify-between z-50 transition-colors duration-300">
         <button onClick={() => router.push("/")} className="text-pi-purple transition-all flex flex-col items-center gap-1">
           <HomeIcon size={24} />
           <span className="text-[10px] font-bold">Inicio</span>
         </button>
-        <button onClick={() => router.push("/explore")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+        <button onClick={() => router.push("/explore")} className="text-gray-400 dark:text-gray-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
           <Search size={24} />
           <span className="text-[10px] font-bold">Explorar</span>
         </button>
-        <button onClick={() => handleProtectedNavigation("/upload")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+        <button onClick={() => handleProtectedNavigation("/upload")} className="text-gray-400 dark:text-gray-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
           <Upload size={24} />
           <span className="text-[10px] font-bold">Subir</span>
         </button>
-        <button onClick={() => handleProtectedNavigation("/library")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+        <button onClick={() => handleProtectedNavigation("/library")} className="text-gray-400 dark:text-gray-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
           <BookOpen size={24} />
           <span className="text-[10px] font-bold">Biblioteca</span>
         </button>
-        <button onClick={() => handleProtectedNavigation("/profile")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+        <button onClick={() => handleProtectedNavigation("/profile")} className="text-gray-400 dark:text-gray-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
           <User size={24} />
           <span className="text-[10px] font-bold">Perfil</span>
         </button>
@@ -223,11 +223,11 @@ export default function Home() {
       {/* Login Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-[#111] rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border border-white/10">
             <div className="w-16 h-16 bg-pi-purple/10 text-pi-purple rounded-full flex items-center justify-center mx-auto mb-4">
               <User size={32} />
             </div>
-            <h3 className="text-xl font-black mb-2">Inicia sesión</h3>
+            <h3 className="text-xl font-black mb-2 text-slate-900 dark:text-white">Inicia sesión</h3>
             <p className="text-gray-500 mb-6 text-sm">
               Necesitas conectar tu cuenta de Pi Network para acceder a esta sección.
             </p>
@@ -244,7 +244,7 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setShowLoginModal(false)}
-                className="w-full py-3 text-gray-400 font-bold hover:text-black transition-colors"
+                className="w-full py-3 text-gray-400 font-bold hover:text-black dark:hover:text-white transition-colors"
               >
                 Cancelar
               </button>

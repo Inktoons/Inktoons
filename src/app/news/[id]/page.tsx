@@ -116,6 +116,14 @@ export default function MangaDetailPage() {
     const [mockRating, setMockRating] = useState(Math.round(news?.rating || 0).toString());
     const [voteCount, setVoteCount] = useState(news?.votes || 0);
 
+    // Sync state with news data when it loads
+    React.useEffect(() => {
+        if (news) {
+            setMockRating(Math.round(news.rating || 0).toString());
+            setVoteCount(news.votes || 0);
+        }
+    }, [news?.rating, news?.votes]);
+
     // Track visit
     React.useEffect(() => {
         if (news?.id) {

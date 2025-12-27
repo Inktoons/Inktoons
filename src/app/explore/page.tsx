@@ -95,10 +95,10 @@ export default function ExplorePage() {
     const alphabet = ["0-9", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
 
     return (
-        <div className="min-h-screen bg-white text-gray-900 flex flex-col font-sans">
+        <div className="min-h-screen bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
             <TopNavbar />
             {/* 1. TOP SEARCH BAR */}
-            <div className="p-4 bg-white">
+            <div className="p-4 bg-white dark:bg-[#0a0a0a]">
                 <div className="relative group">
                     <div className={`absolute inset-0 bg-[#FF4D4D]/5 rounded-lg blur-md opacity-0 group-focus-within:opacity-100 transition-opacity`} />
                     <input
@@ -106,13 +106,13 @@ export default function ExplorePage() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Ingrese el título o el nombre del autor"
-                        className="w-full bg-gray-50 border border-gray-100 group-focus-within:border-[#FF4D4D]/30 rounded-lg py-3.5 pl-12 pr-4 text-sm outline-none transition-all placeholder:text-gray-400 relative z-10 text-gray-900"
+                        className="w-full bg-gray-50 dark:bg-[#111] border border-gray-100 dark:border-white/10 group-focus-within:border-[#FF4D4D]/30 rounded-lg py-3.5 pl-12 pr-4 text-sm outline-none transition-all placeholder:text-gray-400 relative z-10 text-gray-900 dark:text-white"
                     />
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-20" size={20} />
                     {searchQuery && (
                         <button
                             onClick={() => setSearchQuery("")}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black z-20"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black dark:hover:text-white z-20"
                         >
                             <X size={18} />
                         </button>
@@ -121,7 +121,7 @@ export default function ExplorePage() {
             </div>
 
             {/* 2. MAIN TABS */}
-            <div className="flex border-b border-gray-50 px-4 bg-white">
+            <div className="flex border-b border-gray-50 dark:border-white/10 px-4 bg-white dark:bg-[#0a0a0a]">
                 {["POPULAR", "LO ÚLTIMO", "DIRECTORIO"].map((tab) => (
                     <button
                         key={tab}
@@ -147,7 +147,7 @@ export default function ExplorePage() {
             </div>
 
             {/* 3. CONTENT AREA */}
-            <main className="flex-1 overflow-y-auto pb-32 bg-white">
+            <main className="flex-1 overflow-y-auto pb-32 bg-white dark:bg-[#0a0a0a]">
                 <AnimatePresence mode="wait">
                     {activeTab === "DIRECTORIO" && !searchQuery && !selectedStatus && !selectedLetter ? (
                         <motion.div
@@ -155,7 +155,7 @@ export default function ExplorePage() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="p-6 space-y-8 bg-white"
+                            className="p-6 space-y-8 bg-white dark:bg-[#0a0a0a]"
                         >
                             {/* --- ESTADO --- */}
                             <div>
@@ -165,7 +165,7 @@ export default function ExplorePage() {
                                         <button
                                             key={status}
                                             onClick={() => setSelectedStatus(status)}
-                                            className="py-3 text-[13px] font-bold text-gray-500 hover:text-[#FF4D4D] transition-colors border border-transparent active:bg-gray-50 rounded-lg"
+                                            className="py-3 text-[13px] font-bold text-gray-500 dark:text-gray-400 hover:text-[#FF4D4D] dark:hover:text-[#FF4D4D] transition-colors border border-transparent active:bg-gray-50 dark:active:bg-white/10 rounded-lg"
                                         >
                                             {status}
                                         </button>
@@ -181,7 +181,7 @@ export default function ExplorePage() {
                                         <button
                                             key={char}
                                             onClick={() => setSelectedLetter(char)}
-                                            className="py-2 text-[13px] font-bold text-gray-500 hover:text-[#FF4D4D] transition-colors text-center active:bg-gray-50 rounded-lg"
+                                            className="py-2 text-[13px] font-bold text-gray-500 dark:text-gray-400 hover:text-[#FF4D4D] dark:hover:text-[#FF4D4D] transition-colors text-center active:bg-gray-50 dark:active:bg-white/10 rounded-lg"
                                         >
                                             {char}
                                         </button>
@@ -233,7 +233,7 @@ export default function ExplorePage() {
                                             <div
                                                 key={item.id + idx}
                                                 onClick={() => router.push(`/news/${item.id}`)}
-                                                className="flex gap-4 p-3 bg-white hover:bg-gray-50 rounded-xl transition-all cursor-pointer group active:scale-[0.98] border border-transparent hover:border-gray-100"
+                                                className="flex gap-4 p-3 bg-white dark:bg-[#111] hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer group active:scale-[0.98] border border-transparent hover:border-gray-100 dark:border-white/5"
                                             >
                                                 <div className="relative w-20 h-28 flex-shrink-0 rounded-lg overflow-hidden shadow-sm">
                                                     <Image
@@ -249,7 +249,7 @@ export default function ExplorePage() {
                                                     )}
                                                 </div>
                                                 <div className="flex-1 flex flex-col justify-center py-1">
-                                                    <h4 className="font-bold text-sm text-gray-900 line-clamp-2 leading-snug group-hover:text-[#FF4D4D] transition-colors mb-1">
+                                                    <h4 className="font-bold text-sm text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-[#FF4D4D] transition-colors mb-1">
                                                         {item.title}
                                                     </h4>
                                                     <p className="text-[11px] text-gray-400 font-medium mb-2">
@@ -270,7 +270,7 @@ export default function ExplorePage() {
                                         ))
                                 ) : (
                                     <div className="text-center py-24 flex flex-col items-center">
-                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
+                                        <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4 text-gray-300">
                                             <Search size={32} />
                                         </div>
                                         <p className="text-gray-400 text-sm font-bold">Sin resultados</p>
@@ -284,8 +284,8 @@ export default function ExplorePage() {
             </main>
 
             {/* 4. BOTTOM NAVIGATION */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-8 py-4 flex items-center justify-between z-50">
-                <button onClick={() => router.push("/")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/10 px-8 py-4 flex items-center justify-between z-50 transition-colors duration-300">
+                <button onClick={() => router.push("/")} className="text-slate-400 dark:text-slate-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Home size={22} />
                     <span className="text-[10px] font-bold">Inicio</span>
                 </button>
@@ -293,11 +293,11 @@ export default function ExplorePage() {
                     <Search size={22} />
                     <span className="text-[10px] font-bold underline decoration-2 underline-offset-4">Descubre</span>
                 </button>
-                <button onClick={() => router.push("/library")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                <button onClick={() => router.push("/library")} className="text-slate-400 dark:text-slate-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <BookOpen size={22} />
                     <span className="text-[10px] font-bold">Biblioteca</span>
                 </button>
-                <button onClick={() => router.push("/profile")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                <button onClick={() => router.push("/profile")} className="text-slate-400 dark:text-slate-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <User size={22} />
                     <span className="text-[10px] font-bold">Perfil</span>
                 </button>

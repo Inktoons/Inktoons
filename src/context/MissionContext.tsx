@@ -76,18 +76,15 @@ export function MissionProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const claimMission = useCallback((missionId: string) => {
-        let reward = 0;
-        let success = false;
-        setMissions(prev => prev.map(m => {
-            if (m.id === missionId && m.progress >= m.target && !m.isClaimed) {
-                reward = m.reward;
-                success = true;
-                return { ...m, isClaimed: true };
-            }
-            return m;
-        }));
-        return { success, reward };
-    }, []);
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission) return { success: false, reward: 0 };
+
+        if (mission.progress >= mission.target && !mission.isClaimed) {
+            setMissions(prev => prev.map(m => m.id === missionId ? { ...m, isClaimed: true } : m));
+            return { success: true, reward: mission.reward };
+        }
+        return { success: false, reward: 0 };
+    }, [missions]);
 
     const replaceMission = useCallback((missionId: string) => {
         setMissions(prev => {

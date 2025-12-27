@@ -31,7 +31,9 @@ interface UserData {
         type: '1m' | '6m' | '1y';
         expiresAt: number;
     };
+    likedChapters?: string[];
 }
+
 
 interface UserDataContextType {
     userData: UserData;
@@ -55,6 +57,8 @@ interface UserDataContextType {
     clearNotifications: () => void;
     toggleCensorship: () => void;
     updateWalletAddress: (address: string) => void;
+    toggleLikeChapter: (webtoonId: string, chapterId: string) => void;
+    isChapterLiked: (webtoonId: string, chapterId: string) => boolean;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -74,6 +78,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         notifications: [],
         censorshipEnabled: true,
         walletAddress: "",
+        likedChapters: []
     });
 
     useEffect(() => {
@@ -173,6 +178,25 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         setUserData(prev => ({ ...prev, walletAddress: address }));
     }, []);
 
+    const toggleLikeChapter = useCallback((webtoonId: string, chapterId: string) => {
+        setUserData(prev => {
+            const key = `${webtoonId}:${chapterId}`;
+            const currentLikes = prev.likedChapters || [];
+            const isLiked = currentLikes.includes(key);
+
+            return {
+                ...prev,
+                likedChapters: isLiked
+                    ? currentLikes.filter(k => k !== key)
+                    : [...currentLikes, key]
+            };
+        });
+    }, []);
+
+    const isChapterLiked = useCallback((webtoonId: string, chapterId: string) => {
+        return (userData.likedChapters || []).includes(`${webtoonId}:${chapterId}`);
+    }, [userData.likedChapters]);
+
     const addNotification = useCallback((notif: Omit<Notification, 'id' | 'date' | 'read'>) => {
         setUserData(prev => {
             const newNotif: Notification = {
@@ -219,7 +243,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     return (
         <UserDataContext.Provider value={{
             userData, loading, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress,
-            addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress
+            addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress, toggleLikeChapter, isChapterLiked
         }}>
             {children}
         </UserDataContext.Provider>

@@ -23,9 +23,10 @@ export default function ChapterReaderPage() {
     const chapterId = Array.isArray(rawChapterId) ? rawChapterId[0] : rawChapterId as string;
 
     const { getWebtoon } = useContent();
-    const { updateReadingProgress, userData } = useUserData();
+    const { updateReadingProgress, userData, toggleLikeChapter, isChapterLiked } = useUserData();
     const { trackAction } = useMissions();
-    const [isLiked, setIsLiked] = useState(false);
+    const isLiked = isChapterLiked(id, chapterId);
+
     const [isDownloading, setIsDownloading] = useState(false);
 
     const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
@@ -49,7 +50,6 @@ export default function ChapterReaderPage() {
         window.scrollTo(0, 0);
         setLoadingNext(false);
         setLoadingMenu(false);
-        setIsLiked(false);
     }, [chapterId]);
 
     if (!webtoon || !chapter) {
@@ -175,8 +175,8 @@ export default function ChapterReaderPage() {
                     )}
                     <button
                         onClick={() => {
+                            toggleLikeChapter(id, chapterId);
                             if (!isLiked) {
-                                setIsLiked(true);
                                 trackAction('LIKE_CHAPTER', { seriesId: id, chapterId });
                             }
                         }}
