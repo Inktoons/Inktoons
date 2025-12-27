@@ -258,17 +258,23 @@ export default function WalletPage() {
             </div>
 
             <main className="max-w-md mx-auto px-6 py-8">
-                {/* Hero Promotion Message */}
+                {/* Demo / Welcome Message */}
                 <div className="mb-10 text-center">
-                    <p className="inline-block bg-pi-purple/10 text-pi-purple text-[10px] font-black px-4 py-1 rounded-full border border-pi-purple/20 uppercase tracking-widest mb-4">
-                        Bienvenido a la Nueva Era
-                    </p>
-                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter leading-none mb-3">
-                        Potenciando a <span className="text-pi-purple">Artistas</span> en Pi Network
+                    <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-600 text-[10px] font-black px-4 py-1.5 rounded-full border border-amber-200 uppercase tracking-widest mb-6 shadow-sm">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                        </span>
+                        Modo de Prueba Activo
+                    </div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter leading-none mb-4">
+                        Explora <span className="text-pi-purple">Acceso Total</span> en Inktoons
                     </h2>
-                    <p className="text-gray-500 font-medium text-sm leading-relaxed max-w-[280px] mx-auto">
-                        Únete a la plataforma premium de cómics creada para pioneros como tú.
+                    <p className="text-gray-500 font-medium text-sm leading-relaxed max-w-[320px] mx-auto mb-6">
+                        Esta es una <span className="text-black font-bold">versión demo con todo desbloqueado</span>.
+                        ¡Prueba la plataforma, disfruta el contenido y ayúdanos con tu feedback!
                     </p>
+                    <div className="w-12 h-1 bg-pi-purple/20 mx-auto rounded-full" />
                 </div>
 
                 {/* Balance Card */}
