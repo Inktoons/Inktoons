@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+      },
     ],
   },
   allowedDevOrigins: ["susann-organographical-seema.ngrok-free.dev", "*.ngrok-free.dev", "*.ngrok-free.app"],
