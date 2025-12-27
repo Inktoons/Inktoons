@@ -27,14 +27,6 @@ export default function TopNavbar() {
                     className="text-2xl font-black tracking-tighter text-pi-purple cursor-pointer flex items-center gap-2"
                     onClick={() => router.push("/")}
                 >
-                    <div className="relative w-8 h-8">
-                        {/* Using component as fallback if icon.png fails or is not yet available, but the user requested icon.png */}
-                        <img src="/icon.png" alt="Logo" className="w-full h-full object-contain" onError={(e) => {
-                            // Fallback to a styled div if image not found
-                            (e.target as any).style.display = 'none';
-                            (e.target as any).parentElement.innerHTML = '<div class="w-8 h-8 bg-pi-purple rounded-lg"></div>';
-                        }} />
-                    </div>
                     <span>Inktoons</span>
                 </div>
                 <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-gray-500">
@@ -58,7 +50,7 @@ export default function TopNavbar() {
                             className="p-2 transition-transform active:scale-90"
                             title="Billetera"
                         >
-                            <img src="/icon.png" alt="Inks" className="w-6 h-6 object-contain" />
+                            <img src="/icon.png" alt="Inks" className="w-[22px] h-[22px] object-contain" />
                         </button>
 
                         <div className="relative">

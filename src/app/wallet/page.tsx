@@ -396,7 +396,7 @@ export default function WalletPage() {
 
                 {/* Packages */}
                 <h2 className="font-black text-lg mb-4 flex items-center gap-2">
-                    <img src="/icon.png" alt="Inks" className="w-6 h-6 object-contain ml-1" />
+                    <img src="/icon.png" alt="Inks" className="w-[22px] h-[22px] object-contain ml-1" />
                     Recargar Inks
                 </h2>
 
