@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Search, Bell, Menu, User, Crown } from "lucide-react";
+import { Search, Bell, User, Crown, Wallet } from "lucide-react";
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
 import NotificationDropdown from "./NotificationDropdown";
@@ -47,10 +47,10 @@ export default function TopNavbar() {
                         {/* Inks / Balance icon replaced by icon.png as per request */}
                         <button
                             onClick={() => router.push('/wallet')}
-                            className="p-2 transition-transform active:scale-90"
+                            className="p-2 transition-transform active:scale-90 text-gray-500 hover:text-black"
                             title="Billetera"
                         >
-                            <img src="/icon.png" alt="Inks" className="w-[22px] h-[22px] object-contain" />
+                            <Wallet size={22} />
                         </button>
 
                         <div className="relative">
