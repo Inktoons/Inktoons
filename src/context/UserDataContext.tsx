@@ -28,7 +28,7 @@ interface UserData {
     censorshipEnabled?: boolean;
     walletAddress?: string;
     subscription?: {
-        type: '1m' | '6m' | '1y';
+        type: '7d' | '1m' | '6m' | '1y';
         expiresAt: number;
     };
     likedChapters?: string[];
@@ -53,7 +53,7 @@ interface UserDataContextType {
     rateWebtoon: (id: string, rating: number) => void;
     setProfileImage: (image: string) => void;
     addBalance: (amount: number) => void;
-    setSubscription: (type: '1m' | '6m' | '1y', durationInMonths: number) => void;
+    setSubscription: (type: '7d' | '1m' | '6m' | '1y', durationInMonths: number) => void;
     isFavorite: (id: string) => boolean;
     isInHistory: (id: string) => boolean;
     isFollowingAuthor: (authorName: string) => boolean;
@@ -243,7 +243,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         setUserData(prev => ({ ...prev, notifications: [] }));
     }, []);
 
-    const setSubscription = useCallback((type: '1m' | '6m' | '1y', durationInMonths: number) => {
+    const setSubscription = useCallback((type: '7d' | '1m' | '6m' | '1y', durationInMonths: number) => {
         setUserData(prev => {
             const now = Date.now();
             const ms = durationInMonths * 30 * 24 * 60 * 60 * 1000;

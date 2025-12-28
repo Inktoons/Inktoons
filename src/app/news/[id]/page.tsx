@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { mockNews } from "@/data/mockNews";
@@ -40,6 +40,9 @@ import { useUserData } from "@/context/UserDataContext";
 import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
 import NotificationDropdown from "@/components/NotificationDropdown";
+import { useLanguage } from "@/context/LanguageContext";
+import BottomNavbar from "@/components/BottomNavbar";
+import { Wallet, Globe, Languages } from "lucide-react";
 
 interface Comment {
     id: string;
@@ -54,8 +57,11 @@ interface Comment {
 
 export default function MangaDetailPage() {
     const { id } = useParams();
+    const searchParams = useSearchParams();
     const router = useRouter();
+    const requestedTab = searchParams.get('tab');
     const { user, authenticate, loading } = usePi();
+    const { t, language, setLanguage } = useLanguage();
     const {
         isFavorite,
         toggleFavorite,
@@ -78,10 +84,11 @@ export default function MangaDetailPage() {
     const contentWebtoon = getWebtoon(id as string);
     const news = (contentWebtoon || mockNews.find((item) => item.id === id)) as Webtoon | undefined;
 
-    const [activeTab, setActiveTab] = useState("DETALLES");
+    const [activeTab, setActiveTab] = useState(requestedTab || "details");
     const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
     const [showUnlockModal, setShowUnlockModal] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showLangSelector, setShowLangSelector] = useState(false);
 
     const unreadCount = (userData.notifications || []).filter(n => !n.read).length;
     const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
@@ -110,7 +117,6 @@ export default function MangaDetailPage() {
     ]);
     const [showCommentInput, setShowCommentInput] = useState(false);
     const [newCommentText, setNewCommentText] = useState("");
-    const [newCommentImage, setNewCommentImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Rating State initialized from data as integer
@@ -191,36 +197,28 @@ export default function MangaDetailPage() {
         : voteCount.toLocaleString();
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setNewCommentImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
+        // Disabled by user request
     };
 
     const handleDeleteComment = (commentId: string) => {
-        if (confirm("¿Estás seguro de que quieres eliminar este comentario?")) {
+        if (confirm(t('detail_dialog_delete'))) {
             setComments(comments.filter(c => c.id !== commentId));
         }
     };
 
     const handleSubmitComment = () => {
         if (!user) {
-            alert("Debes iniciar sesión para comentar.");
+            alert(t('detail_comment_login'));
             // authenticate(); // Could trigger auth flow
             return;
         }
-        if (!newCommentText.trim() && !newCommentImage) return;
+        if (!newCommentText.trim()) return;
 
         const newComment: Comment = {
             id: Date.now().toString(),
             username: user.username,
             avatar: user.username.charAt(0).toUpperCase(),
             content: newCommentText,
-            image: newCommentImage || undefined,
             timestamp: "Justo ahora",
             likes: 0,
             replies: 0
@@ -228,7 +226,6 @@ export default function MangaDetailPage() {
 
         setComments([newComment, ...comments]);
         setNewCommentText("");
-        setNewCommentImage(null);
         setShowCommentInput(false);
         trackAction('COMMENT', { seriesId: news.id });
     };
@@ -241,22 +238,61 @@ export default function MangaDetailPage() {
                     <button onClick={() => router.back()} className="text-gray-600 hover:text-black transition-colors">
                         <ArrowLeft size={24} />
                     </button>
-                    <span className="font-black text-lg">Manga</span>
+                    <span className="font-black text-lg">{t('detail_nav_title')}</span>
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-4">
-                    <div className="hidden md:flex items-center gap-3 text-gray-400 mr-2">
-                        <button className="hover:text-black transition-colors"><Download size={20} /></button>
-                        <button
-                            onClick={() => trackAction('SHARE_SERIES', { seriesId: news.id })}
-                            className="hover:text-black transition-colors"
-                        >
-                            <Share2 size={20} />
-                        </button>
-                    </div>
-
                     {user && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 md:gap-3">
+                            {/* Language Selector */}
+                            <div className="relative flex items-center">
+                                <button
+                                    onClick={() => setShowLangSelector(!showLangSelector)}
+                                    className={`p-2 rounded-full transition-all active:scale-95 flex items-center gap-1.5 ${showLangSelector ? 'bg-pi-purple/10 text-pi-purple' : 'text-gray-500 hover:text-black hover:bg-gray-100'}`}
+                                    title="Seleccionar Idioma"
+                                >
+                                    <Globe size={22} />
+                                    <span className="text-[10px] font-black uppercase hidden md:block">
+                                        {language === 'es' ? '🇪🇸' : language === 'en' ? '🇺🇸' : language === 'pt' ? '🇧🇷' : '🇫🇷'}
+                                    </span>
+                                </button>
+
+                                {showLangSelector && (
+                                    <>
+                                        <div className="fixed inset-0 z-[90]" onClick={() => setShowLangSelector(false)} />
+                                        <div className="absolute top-full mt-2 right-0 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 min-w-[150px] z-[100] animate-in fade-in zoom-in-95 duration-100">
+                                            {[
+                                                { id: 'es', flag: '🇪🇸', name: 'Español' },
+                                                { id: 'en', flag: '🇺🇸', name: 'English' },
+                                                { id: 'pt', flag: '🇧🇷', name: 'Português' },
+                                                { id: 'fr', flag: '🇫🇷', name: 'Français' }
+                                            ].map((lang) => (
+                                                <button
+                                                    key={lang.id}
+                                                    onClick={() => {
+                                                        setLanguage(lang.id as any);
+                                                        setShowLangSelector(false);
+                                                    }}
+                                                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all font-bold text-sm active:scale-[0.98] ${language === lang.id ? 'bg-pi-purple text-white shadow-md' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                >
+                                                    <span className="text-xl">{lang.flag}</span>
+                                                    <span className="flex-1 text-left">{lang.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Wallet */}
+                            <button
+                                onClick={() => router.push('/wallet')}
+                                className="p-2 transition-transform active:scale-90 text-gray-500 hover:text-black"
+                                title="Billetera"
+                            >
+                                <Wallet size={22} />
+                            </button>
+
                             <div className="relative">
                                 <button
                                     onClick={() => setShowNotifications(!showNotifications)}
@@ -349,22 +385,53 @@ export default function MangaDetailPage() {
                                 {mockRating}
                             </span>
                             <span className="text-gray-400 text-xs font-medium">
-                                ({displayVotes} votos)
+                                ({displayVotes} {t('detail_votes')})
                             </span>
                         </div>
 
                         {/* Status */}
                         <div className="flex items-center gap-2 mb-3">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-sm font-medium text-gray-500">{status}</span>
+                            <span className={`w-2 h-2 rounded-full animate-pulse ${news.status === 'Completed' ? 'bg-green-500' : 'bg-green-500'}`} />
+                            <span className="text-sm font-medium text-gray-500">
+                                {t((news.status === 'Completed' ? 'status_completed' : 'status_ongoing') as any)}
+                            </span>
                         </div>
 
                         <div className="flex flex-wrap gap-1">
-                            {genres.map(g => (
-                                <span key={g} className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-md">
-                                    {g}
-                                </span>
-                            ))}
+                            {genres.map(g => {
+                                // Simple mapping for translation
+                                // We try to normalize string to key format: genre_accion -> genre_action checking known keys
+                                let genreKey = 'genre_' + g.toLowerCase()
+                                    .replace('ó', 'o')
+                                    .replace('í', 'i')
+                                    .replace('é', 'e')
+                                    .replace('á', 'a')
+                                    .replace('ñ', 'n')
+                                    .replace(/\s+/g, '') // remove spaces for keys like sliceoflife
+                                    .replace(/-+/g, ''); // remove dashes for sci-fi
+
+                                // Direct fixes for translations
+                                if (genreKey === 'genre_accion') genreKey = 'genre_action';
+                                if (genreKey === 'genre_aventura') genreKey = 'genre_adventure';
+                                if (genreKey === 'genre_fantasia') genreKey = 'genre_fantasy';
+                                if (genreKey === 'genre_cienciaficcion') genreKey = 'genre_scifi';
+                                if (genreKey === 'genre_misterio') genreKey = 'genre_mystery';
+                                if (genreKey === 'genre_comedia') genreKey = 'genre_comedy';
+                                if (genreKey === 'genre_terror') genreKey = 'genre_horror';
+                                if (genreKey === 'genre_psicologico') genreKey = 'genre_psychological';
+                                if (genreKey === 'genre_cotidiano') genreKey = 'genre_sliceoflife';
+                                if (genreKey === 'genre_historico') genreKey = 'genre_historical';
+
+                                const translated = t(genreKey as any);
+                                // If t() returns the key itself (meaning no translation found) or empty, fallback to original
+                                const display = (translated && translated !== genreKey) ? translated : g;
+
+                                return (
+                                    <span key={g} className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-md">
+                                        {display}
+                                    </span>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -388,7 +455,7 @@ export default function MangaDetailPage() {
                             }`}
                     >
                         {isFav ? <Heart size={18} fill="currentColor" /> : <Heart size={18} />}
-                        {isFav ? "SIGUIENDO" : "SEGUIR"}
+                        {isFav ? t('detail_btn_reading') : t('detail_btn_follow')}
                     </button>
                     <button
                         onClick={() => {
@@ -403,7 +470,7 @@ export default function MangaDetailPage() {
                                 // Let's assume index 0 for now as previously, but better to go to newest if it's a "latest" click.
                                 router.push(`/chapter/${id}/${news.chapters[news.chapters.length - 1].id}`);
                             } else {
-                                setActiveTab("EPISODIO");
+                                setActiveTab("episodes");
                             }
                         }}
                         className={`flex-1 py-3 rounded-full font-black text-sm shadow-lg shadow-pi-purple/20 transition-all active:scale-95 flex items-center justify-center gap-2 ${inHist
@@ -412,21 +479,25 @@ export default function MangaDetailPage() {
                             }`}
                     >
                         <BookOpen size={18} />
-                        {inHist ? "CONTINUAR" : "LEER"}
+                        {inHist ? t('detail_btn_continue') : t('detail_btn_read')}
                     </button>
                 </div>
 
                 {/* Tab Navigation - Adjusted for better sticky behavior */}
                 <div className="flex items-center border-b border-gray-100 sticky top-[52px] bg-white z-40 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.01)]">
-                    {["DETALLES", "EPISODIO", "COMENTARIOS"].map(tab => (
+                    {[
+                        { id: 'details', label: 'detail_tab_details' },
+                        { id: 'episodes', label: 'detail_tab_episodes' },
+                        { id: 'comments', label: 'detail_tab_comments' }
+                    ].map(tab => (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-4 text-[11px] font-black tracking-widest relative transition-colors ${activeTab === tab ? "text-pi-purple" : "text-gray-400 hover:text-gray-600"
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex-1 py-4 text-[11px] font-black tracking-widest relative transition-colors ${activeTab === tab.id ? "text-pi-purple" : "text-gray-400 hover:text-gray-600"
                                 }`}
                         >
-                            {tab}
-                            {activeTab === tab && (
+                            {t(tab.label as any)}
+                            {activeTab === tab.id && (
                                 <motion.div
                                     layoutId="underline"
                                     className="absolute bottom-0 left-0 right-0 h-0.5 bg-pi-purple"
@@ -438,11 +509,11 @@ export default function MangaDetailPage() {
 
                 {/* Tab Content */}
                 <div className="px-5 pt-6 pb-20 min-h-[300px]">
-                    {activeTab === "DETALLES" && (
+                    {activeTab === "details" && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             {/* Introducción */}
                             <div className="mb-8">
-                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 px-1">Introducción</h3>
+                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 px-1">{t('detail_intro_title')}</h3>
                                 <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                                     <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
                                         {news.excerpt}
@@ -452,16 +523,16 @@ export default function MangaDetailPage() {
 
                             {/* Publicador Section */}
                             <div className="mb-10">
-                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 px-1">Publicador</h3>
+                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 px-1">{t('detail_publisher_title')}</h3>
                                 <div className="bg-white rounded-3xl border border-slate-100 p-5 flex items-center justify-between shadow-sm group">
                                     <div className="flex items-center gap-4">
                                         <div className="relative">
                                             {/* Safe logic for frame */}
                                             <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-black shadow-lg border-2 overflow-hidden relative ${(user && news && user.username === news.author && userData?.isFounder)
-                                                    ? "border-transparent bg-gradient-to-tr from-pi-purple via-amber-500 to-indigo-600 p-[2px] animate-gradient-xy"
-                                                    : (user && news && user.username === news.author && userData?.subscription)
-                                                        ? "border-amber-400"
-                                                        : "border-white"
+                                                ? "border-transparent bg-gradient-to-tr from-pi-purple via-amber-500 to-indigo-600 p-[2px] animate-gradient-xy"
+                                                : (user && news && user.username === news.author && userData?.subscription)
+                                                    ? "border-amber-400"
+                                                    : "border-white"
                                                 }`}>
                                                 <div className="w-full h-full rounded-full overflow-hidden bg-pi-purple flex items-center justify-center">
                                                     {(user && news && user.username === news.author && userData?.profileImage) ? (
@@ -485,25 +556,25 @@ export default function MangaDetailPage() {
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px] bg-slate-100 text-slate-400 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Creador Oficial</span>
+                                                <span className="text-[10px] bg-slate-100 text-slate-400 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{t('detail_official_creator')}</span>
                                             </div>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => news && toggleFollowAuthor(news.author)}
                                         className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isFollowingAuth
-                                                ? "bg-slate-100 text-slate-400"
-                                                : "bg-pi-purple text-white shadow-md shadow-pi-purple/20 active:scale-95"
+                                            ? "bg-slate-100 text-slate-400"
+                                            : "bg-pi-purple text-white shadow-md shadow-pi-purple/20 active:scale-95"
                                             }`}
                                     >
-                                        {isFollowingAuth ? "Siguiendo" : "Seguir"}
+                                        {isFollowingAuth ? t('detail_btn_reading') : t('detail_btn_follow')}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Recommendations */}
                             <div>
-                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-4 px-1">Te puede interesar</h3>
+                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-4 px-1">{t('detail_you_may_like')}</h3>
                                 <div className="grid grid-cols-3 gap-3">
                                     {mockNews.filter(n => n.id !== id).map(item => (
                                         <div
@@ -529,7 +600,7 @@ export default function MangaDetailPage() {
                         </motion.div>
                     )}
 
-                    {activeTab === "EPISODIO" && (
+                    {activeTab === "episodes" && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                             {/* Creator Add Chapter Button */}
                             {(() => {
@@ -554,7 +625,7 @@ export default function MangaDetailPage() {
                                         className="w-full py-4 mb-4 border-2 border-dashed border-pi-purple/30 rounded-xl flex items-center justify-center gap-2 text-pi-purple font-black text-sm hover:bg-pi-purple/5 transition-all active:scale-[0.98]"
                                     >
                                         <PlusCircle size={20} />
-                                        AÑADIR CAPÍTULO
+                                        {t('detail_add_chapter')}
                                     </button>
                                 );
                             })()}
@@ -597,7 +668,7 @@ export default function MangaDetailPage() {
                                                         {isRead && <CheckCircle2 size={14} className="text-pi-purple" />}
                                                     </div>
                                                     <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
-                                                        {chapter.date} {isRead && "• LEÍDO"}
+                                                        {chapter.date} {isRead && `• ${t('detail_chapter_read')}`}
                                                     </p>
                                                 </div>
                                             </div>
@@ -633,7 +704,7 @@ export default function MangaDetailPage() {
                                                                 </div>
                                                                 <div className="flex items-center gap-1 text-[9px] text-gray-400 mt-1">
                                                                     <Lock size={10} />
-                                                                    <span>Gratis en {daysRemaining} {daysRemaining === 1 ? 'día' : 'días'}</span>
+                                                                    <span>{t('detail_chapter_free_in')} {daysRemaining} {daysRemaining === 1 ? t('detail_chapter_day') : t('detail_chapter_days')}</span>
                                                                 </div>
                                                             </div>
                                                         );
@@ -665,14 +736,14 @@ export default function MangaDetailPage() {
                             ) : (
                                 <div className="text-center py-20 text-gray-400">
                                     <ImageIcon className="mx-auto mb-4 opacity-20" size={48} />
-                                    <p className="text-sm font-bold">No hay capítulos disponibles todavía.</p>
-                                    <p className="text-xs">¡Sé el primero en subir contenido!</p>
+                                    <p className="text-sm font-bold">{t('detail_no_chapters')}</p>
+                                    <p className="text-xs">{t('detail_be_first')}</p>
                                 </div>
                             )}
                         </motion.div>
                     )}
 
-                    {activeTab === "COMENTARIOS" && (
+                    {activeTab === "comments" && (
                         <div className="relative min-h-[300px]">
                             {/* Comments List */}
                             <div className="flex flex-col gap-6">
@@ -776,7 +847,7 @@ export default function MangaDetailPage() {
                                 className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 z-[70] shadow-2xl"
                             >
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-bold text-lg">Escribir comentario</h3>
+                                    <h3 className="font-bold text-lg">{t('detail_comment_write')}</h3>
                                     <button onClick={() => setShowCommentInput(false)} className="p-2 text-gray-400 hover:text-black">
                                         <X size={24} />
                                     </button>
@@ -785,41 +856,19 @@ export default function MangaDetailPage() {
                                 <textarea
                                     value={newCommentText}
                                     onChange={(e) => setNewCommentText(e.target.value)}
-                                    placeholder="Comparte tu opinión..."
+                                    placeholder={t('detail_comment_placeholder')}
                                     className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm outline-none focus:border-pi-purple focus:ring-1 focus:ring-pi-purple min-h-[120px] resize-none mb-4"
                                 />
 
-                                {newCommentImage && (
-                                    <div className="relative w-20 h-20 rounded-lg overflow-hidden mb-4 border border-gray-200">
-                                        <Image src={newCommentImage} alt="Preview" fill className="object-cover" />
-                                        <button
-                                            onClick={() => setNewCommentImage(null)}
-                                            className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center text-xs"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                )}
+
 
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="p-3 bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 hover:text-pi-purple transition-colors"
-                                        >
-                                            <ImageIcon size={20} />
-                                        </button>
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                        />
+                                        {/* Image upload disabled by user request */}
                                     </div>
                                     <button
                                         onClick={handleSubmitComment}
-                                        disabled={!newCommentText.trim() && !newCommentImage}
+                                        disabled={!newCommentText.trim()}
                                         className="bg-[#FF6B6B] text-white px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-500 transition-colors"
                                     >
                                         <Send size={18} />
@@ -901,31 +950,10 @@ export default function MangaDetailPage() {
                         </>
                     )}
                 </AnimatePresence>
+
+                <BottomNavbar />
             </main>
 
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-6 py-4 flex items-center justify-between z-50">
-                <button onClick={() => router.push("/")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <HomeIcon size={22} />
-                    <span className="text-[10px] font-bold">Inicio</span>
-                </button>
-                <button onClick={() => router.push("/explore")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <Search size={22} />
-                    <span className="text-[10px] font-bold">Explorar</span>
-                </button>
-                <button onClick={() => router.push("/upload")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <Upload size={22} />
-                    <span className="text-[10px] font-bold">Subir</span>
-                </button>
-                <button onClick={() => router.push("/library")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <BookOpen size={22} />
-                    <span className="text-[10px] font-bold">Biblioteca</span>
-                </button>
-                <button onClick={() => router.push("/profile")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <User size={22} />
-                    <span className="text-[10px] font-bold">Perfil</span>
-                </button>
-            </nav>
 
             {/* Safe Area Spacer */}
             <div className="h-10" />

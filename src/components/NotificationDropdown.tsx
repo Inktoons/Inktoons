@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Bell, Check, Trash2, ExternalLink, Clock } from "lucide-react";
 import { useUserData, Notification } from "@/context/UserDataContext";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface NotificationDropdownProps {
     isOpen: boolean;
@@ -14,6 +15,7 @@ interface NotificationDropdownProps {
 export default function NotificationDropdown({ isOpen, onClose }: NotificationDropdownProps) {
     const { userData, markNotificationRead, clearNotifications } = useUserData();
     const router = useRouter();
+    const { t } = useLanguage();
 
     const notifications = userData.notifications || [];
     const unreadCount = notifications.filter(n => !n.read).length;
@@ -70,7 +72,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                         {/* Header */}
                         <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-sm text-gray-900">Notificaciones</h3>
+                                <h3 className="font-bold text-sm text-gray-900">{t('notifications_title')}</h3>
                                 {unreadCount > 0 && (
                                     <span className="bg-[#FF4D4D] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
                                         {unreadCount}
@@ -82,7 +84,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                                     <button
                                         onClick={clearNotifications}
                                         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                                        title="Limpiar todas"
+                                        title={t('notifications_clear')}
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -124,7 +126,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                                                 </p>
                                                 {notif.link && (
                                                     <div className="flex items-center gap-1 text-[9px] font-black text-pi-purple uppercase tracking-widest pt-1">
-                                                        Ver ahora <ExternalLink size={8} />
+                                                        {t('notifications_view')} <ExternalLink size={8} />
                                                     </div>
                                                 )}
                                             </div>
@@ -136,8 +138,8 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                                     <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
                                         <Bell size={24} />
                                     </div>
-                                    <p className="text-gray-900 text-sm font-bold">Todo al día</p>
-                                    <p className="text-gray-400 text-xs mt-1">No tienes notificaciones pendientes.</p>
+                                    <p className="text-gray-900 text-sm font-bold">{t('notifications_empty_title')}</p>
+                                    <p className="text-gray-400 text-xs mt-1">{t('notifications_empty_desc')}</p>
                                 </div>
                             )}
                         </div>
@@ -146,7 +148,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                         {notifications.length > 0 && (
                             <div className="px-4 py-2 bg-gray-50/50 border-t border-gray-100 text-center">
                                 <button className="text-[10px] font-black text-pi-purple uppercase tracking-widest hover:underline">
-                                    Administrar preferencias
+                                    {t('notifications_manage')}
                                 </button>
                             </div>
                         )}

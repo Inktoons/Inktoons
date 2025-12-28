@@ -7,23 +7,31 @@ import { useRouter } from "next/navigation";
 import { usePi } from "@/components/PiNetworkProvider";
 import { mockNews } from "@/data/mockNews";
 import { useContent } from "@/context/ContentContext";
-import { Search, Bell, Menu, User, Zap, Star, TrendingUp, Clock, Home as HomeIcon, BookOpen, Upload, Rocket, Compass, Heart, Send } from "lucide-react";
+import { Search, Upload, BookOpen, User, Home as HomeIcon, ChevronRight, Compass, TrendingUp, Ghost, Sword, Moon, Music } from "lucide-react";
 import TopNavbar from "@/components/TopNavbar";
+import BottomNavbar from "@/components/BottomNavbar";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Home() {
   const router = useRouter();
   const { user, authenticate, loading } = usePi();
   const { webtoons } = useContent();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("Nuevo");
   const [showLoginModal, setShowLoginModal] = useState(false);
 
+  const EXCLUDED_CATEGORIES = ['hentai', 'gore', '+18', 'adult', 'erotic', 'ecchi', 'nsfw'];
+
   const displayWebtoons = [
-    ...webtoons.map(w => {
-      const mock = mockNews.find(m => m.id === w.id);
-      return mock ? { ...w, views: mock.views, votes: mock.votes } : w;
-    }),
+    ...webtoons,
     ...mockNews.filter(m => !webtoons.some(w => w.id === m.id))
-  ];
+  ].map(w => {
+    const mock = mockNews.find(m => m.id === w.id);
+    return mock ? { ...w, views: mock.views, votes: mock.votes, category: mock.category } : w;
+  }).filter(w => {
+    const cat = w.category?.toLowerCase() || '';
+    return !EXCLUDED_CATEGORIES.some(excluded => cat.includes(excluded));
+  });
 
   const recentWebtoons = [...displayWebtoons].sort((a, b) => {
     const dateA = new Date(a.date).getTime();
@@ -51,13 +59,13 @@ export default function Home() {
         {/* Categories Header */}
         <div className="flex items-center justify-between mb-4 mt-4">
           <h3 className="text-xl font-black flex items-center gap-2">
-            Categorías
+            {t('home_categories')}
           </h3>
           <button
             onClick={() => router.push('/explore')}
             className="text-gray-400 hover:text-pi-purple font-bold text-sm transition-colors flex items-center gap-1 group"
           >
-            Ver más
+            {t('home_see_more')}
             <span className="group-hover:translate-x-1 transition-transform">→</span>
           </button>
         </div>
@@ -66,14 +74,14 @@ export default function Home() {
         <section className="mb-10 overflow-x-auto no-scrollbar py-2">
           <div className="flex gap-6 min-w-max px-2">
             {[
-              { id: 'Misterio', name: 'Misterio', image: '/img/categories/mystery.png' },
-              { id: 'Romance', name: 'Romance', image: '/img/categories/romance.png' },
-              { id: 'Drama', name: 'Drama', image: '/img/categories/drama.png' },
-              { id: 'Fantasía', name: 'Fantasía', image: '/img/categories/fantasy.png' },
-              { id: 'Comedia', name: 'Comedia', image: '/img/categories/comedy.png' },
-              { id: 'Acción', name: 'Acción', image: '/img/categories/action.png' },
-              { id: 'Aventura', name: 'Aventura', icon: <Compass className="text-amber-500" size={32} /> },
-              { id: 'Sci-Fi', name: 'Sci-Fi', icon: <Rocket className="text-indigo-500" size={32} /> }
+              { id: 'genre_romance', image: '/img/categories/romance.png' },
+              { id: 'genre_drama', image: '/img/categories/drama.png' },
+              { id: 'genre_fantasy', image: '/img/categories/fantasy.png' },
+              { id: 'genre_adventure', image: '/img/categories/adventure.png' },
+              { id: 'genre_horror', image: '/img/categories/horror.jpg' },
+              { id: 'genre_samurai', image: '/img/categories/samurai.jpg' },
+              { id: 'genre_vampires', image: '/img/categories/vampires.jpg' },
+              { id: 'genre_music', image: '/img/categories/music.jpg' }
             ].map((cat) => (
               <motion.button
                 key={cat.id}
@@ -83,15 +91,11 @@ export default function Home() {
                 className="flex flex-col items-center gap-2 group"
               >
                 <div className="w-20 h-20 rounded-[2rem] bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden group-hover:border-pi-purple/30 group-hover:shadow-xl transition-all duration-300">
-                  {cat.image ? (
-                    <img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-50 flex items-center justify-center">
-                      {cat.icon}
-                    </div>
-                  )}
+                  <img src={cat.image} alt={cat.id} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 </div>
-                <span className="text-[12px] font-black text-slate-700 group-hover:text-pi-purple uppercase tracking-tighter transition-colors">{cat.name}</span>
+                <span className="text-[12px] font-black text-slate-700 group-hover:text-pi-purple uppercase tracking-tighter transition-colors">
+                  {t(cat.id as any)}
+                </span>
               </motion.button>
             ))}
           </div>
@@ -99,15 +103,15 @@ export default function Home() {
 
         {/* Promo Banner */}
         <section className="mb-12 mt-4">
-          <div className="bg-gradient-to-r from-purple-900 via-purple-700 to-indigo-900 rounded-xl p-8 flex flex-col md:flex-row items-center justify-between overflow-hidden relative group cursor-pointer shadow-lg">
+          <div className="bg-gradient-to-r from-purple-900 via-purple-700 to-indigo-900 rounded-xl p-8 flex flex-col md:flex-row items-center justify-between overflow-hidden relative group cursor-pointer shadow-lg" onClick={() => router.push('/wallet')}>
             <div className="z-10 text-center md:text-left">
-              <button onClick={() => router.push('/wallet')} className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold mb-4 inline-block hover:bg-white/30 transition-colors text-white">ECONOMÍA INKTOONS</button>
-              <h2 className="text-3xl font-black text-white mb-2 leading-tight">¡Acumula Inks y desbloquea historias épicas!</h2>
-              <p className="text-white/80 font-bold">Completa misiones, lee capítulos y canjea tus Inks por contenido exclusivo.</p>
+              <div className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold mb-4 inline-block text-white uppercase tracking-wider">{t('home_promo_economy')}</div>
+              <h2 className="text-3xl font-black text-white mb-2 leading-tight">{t('home_promo_title')}</h2>
+              <p className="text-white/80 font-bold">{t('home_promo_desc')}</p>
             </div>
             <div className="mt-6 md:mt-0 z-10">
-              <button onClick={() => router.push('/wallet')} className="bg-white text-black px-8 py-3 rounded-full font-black hover:scale-105 transition-transform shadow-xl">
-                GANAR INKS
+              <button className="bg-white text-black px-8 py-3 rounded-full font-black hover:scale-105 transition-transform shadow-xl">
+                {t('home_promo_btn')}
               </button>
             </div>
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-32 -mt-32" />
@@ -120,11 +124,11 @@ export default function Home() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex flex-col gap-1">
               <h3 className="text-2xl font-black flex items-center gap-2 text-slate-900">
-                🌱 Recién Llegados
+                🌱 {t('home_new_arrivals')}
               </h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Descubre las últimas historias añadidas</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('home_new_arrivals_desc')}</p>
             </div>
-            <button onClick={() => router.push('/explore')} className="text-pi-purple hover:underline font-black text-xs transition-all uppercase tracking-tighter">Ver todos</button>
+            <button onClick={() => router.push('/explore')} className="text-pi-purple hover:underline font-black text-xs transition-all uppercase tracking-tighter">{t('home_ver_todos')}</button>
           </div>
 
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
@@ -163,11 +167,11 @@ export default function Home() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex flex-col gap-1">
               <h3 className="text-2xl font-black flex items-center gap-2 text-slate-900">
-                🏆 Rankings Populares
+                🏆 {t('home_popular_rankings')}
               </h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lo más top de esta semana</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('home_top_week')}</p>
             </div>
-            <button onClick={() => router.push('/explore')} className="text-pi-purple hover:underline font-black text-xs transition-all uppercase tracking-tighter">Ver todos</button>
+            <button onClick={() => router.push('/explore')} className="text-pi-purple hover:underline font-black text-xs transition-all uppercase tracking-tighter">{t('home_ver_todos')}</button>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
@@ -210,7 +214,7 @@ export default function Home() {
                     <span className="text-[10px] font-bold text-gray-400 uppercase">{item.category}</span>
                     <div className="flex items-center gap-1 text-[10px] font-black text-slate-500">
                       <TrendingUp size={12} className="text-pi-purple" />
-                      {(item.views || 0).toLocaleString()} visitas
+                      {(item.views || 0).toLocaleString()} {t('home_visitas')}
                     </div>
                   </div>
                 </div>
@@ -218,14 +222,14 @@ export default function Home() {
             ))}
           </div>
         </section>
-      </main>
+      </main >
 
       <footer className="mt-0 py-16 bg-white border-t border-gray-100">
         <div className="max-w-[1200px] mx-auto px-4 flex flex-col items-center text-center">
           <div className="mb-8">
             <div className="text-3xl font-black text-pi-purple mb-4 tracking-tighter">Inktoons</div>
             <p className="text-sm text-gray-500 mb-8 max-w-lg mx-auto leading-relaxed">
-              Tu portal de entretenimiento y noticias descentralizado en la red Pi. Lee, comparte y crece con los mejores creadores.
+              {t('footer_desc')}
             </p>
             <div className="flex justify-center gap-6 mb-12">
               <a href="#" className="w-14 h-14 rounded-full bg-slate-50 border border-gray-100 flex items-center justify-center hover:bg-white hover:shadow-md hover:-translate-y-1 transition-all group">
@@ -245,76 +249,57 @@ export default function Home() {
           <div className="w-full flex flex-col items-center">
             <div className="flex flex-col items-center">
               <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-bold text-gray-400">
-                <span className="hover:text-pi-purple cursor-pointer transition-colors">Centro de ayuda</span>
+                <button onClick={() => router.push('/help')} className="hover:text-pi-purple transition-colors">{t('footer_help')}</button>
                 <span className="hidden sm:inline text-gray-200">|</span>
-                <span className="hover:text-pi-purple cursor-pointer transition-colors">Pautas</span>
+                <button onClick={() => router.push('/guidelines')} className="hover:text-pi-purple transition-colors">{t('footer_guidelines')}</button>
                 <span className="hidden sm:inline text-gray-200">|</span>
-                <span className="hover:text-pi-purple cursor-pointer transition-colors">Privacidad</span>
+                <button onClick={() => router.push('/privacy')} className="hover:text-pi-purple transition-colors">{t('footer_privacy')}</button>
                 <span className="hidden sm:inline text-gray-200">|</span>
-                <span className="hover:text-pi-purple cursor-pointer transition-colors">Términos</span>
+                <button onClick={() => router.push('/terms')} className="hover:text-pi-purple transition-colors">{t('footer_terms')}</button>
               </div>
             </div>
           </div>
         </div>
         <div className="max-w-[1200px] mx-auto px-4 mt-16 pt-8 border-t border-gray-100 text-[10px] text-gray-400 text-center tracking-widest uppercase font-bold">
-          © {new Date().getFullYear()} Inktoons. Todos los derechos reservados.
+          © {new Date().getFullYear()} Inktoons. {t('footer_rights')}
         </div>
       </footer>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 flex items-center justify-between z-50 transition-colors duration-300 lg:hidden">
-        <button onClick={() => router.push("/")} className="text-pi-purple transition-all flex flex-col items-center gap-1">
-          <HomeIcon size={22} />
-          <span className="text-[10px] font-bold">Inicio</span>
-        </button>
-        <button onClick={() => router.push("/explore")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-          <Search size={22} />
-          <span className="text-[10px] font-bold">Descubre</span>
-        </button>
-        <button onClick={() => handleProtectedNavigation("/upload")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-          <Upload size={22} />
-          <span className="text-[10px] font-bold">Subir</span>
-        </button>
-        <button onClick={() => handleProtectedNavigation("/library")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-          <BookOpen size={22} />
-          <span className="text-[10px] font-bold">Biblioteca</span>
-        </button>
-        <button onClick={() => handleProtectedNavigation("/profile")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-          <User size={22} />
-          <span className="text-[10px] font-bold">Perfil</span>
-        </button>
-      </nav>
+      <BottomNavbar />
 
-      {showLoginModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border border-gray-100">
-            <div className="w-16 h-16 bg-pi-purple/10 text-pi-purple rounded-full flex items-center justify-center mx-auto mb-4">
-              <User size={32} />
-            </div>
-            <h3 className="text-xl font-black mb-2 text-slate-900">Inicia sesión</h3>
-            <p className="text-gray-500 mb-6 text-sm">
-              Necesitas conectar tu cuenta de Pi Network para acceder a esta sección.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => {
-                  authenticate();
-                  setShowLoginModal(false);
-                }}
-                disabled={loading}
-                className="w-full py-3 bg-pi-purple text-white font-bold rounded-xl hover:bg-pi-purple-dark transition-colors flex items-center justify-center gap-2"
-              >
-                {loading ? "Cargando..." : "Conectar Pi"}
-              </button>
-              <button
-                onClick={() => setShowLoginModal(false)}
-                className="w-full py-3 text-gray-400 font-bold hover:text-black transition-colors"
-              >
-                Cancelar
-              </button>
+      {
+        showLoginModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border border-gray-100">
+              <div className="w-16 h-16 bg-pi-purple/10 text-pi-purple rounded-full flex items-center justify-center mx-auto mb-4">
+                <User size={32} />
+              </div>
+              <h3 className="text-xl font-black mb-2 text-slate-900">{t('login_modal_title')}</h3>
+              <p className="text-gray-500 mb-6 text-sm">
+                {t('login_modal_desc')}
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    authenticate();
+                    setShowLoginModal(false);
+                  }}
+                  disabled={loading}
+                  className="w-full py-3 bg-pi-purple text-white font-bold rounded-xl hover:bg-pi-purple-dark transition-colors flex items-center justify-center gap-2"
+                >
+                  {loading ? t('profile_loading') : t('login_modal_connect')}
+                </button>
+                <button
+                  onClick={() => setShowLoginModal(false)}
+                  className="w-full py-3 text-gray-400 font-bold hover:text-black transition-colors"
+                >
+                  {t('login_modal_cancel')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

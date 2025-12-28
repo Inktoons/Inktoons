@@ -30,10 +30,13 @@ import {
     Crown,
     Settings,
     RefreshCcw,
-    XCircle
+    XCircle,
+    Languages
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { Language } from "@/data/translations";
 import TopNavbar from "@/components/TopNavbar";
 
 type ViewMode = 'main' | 'favorites' | 'following' | 'history';
@@ -44,6 +47,7 @@ export default function ProfilePage() {
     const { userData, setProfileImage, toggleCensorship, updateWalletAddress, cancelSubscription } = useUserData();
     const { regenerateMissions } = useMissions();
     const { theme, toggleTheme } = useTheme();
+    const { language, setLanguage, t } = useLanguage();
     const { webtoons, deleteWebtoon, uploadImage } = useContent();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('main');
@@ -57,21 +61,21 @@ export default function ProfilePage() {
         {
             id: 'favorites',
             icon: <Heart className="text-red-500" size={22} />,
-            label: "Favoritos",
+            label: t('profile_favorites'),
             count: userData.favorites.length,
             color: "bg-red-50"
         },
         {
             id: 'following',
             icon: <Users className="text-blue-500" size={22} />,
-            label: "Siguiendo",
+            label: t('profile_following'),
             count: userData.following.length,
             color: "bg-blue-50"
         },
         {
             id: 'history',
             icon: <History className="text-green-500" size={22} />,
-            label: "Historial",
+            label: t('profile_history'),
             count: userData.history.length,
             color: "bg-green-50"
         },
@@ -105,17 +109,17 @@ export default function ProfilePage() {
             const progress = totalChapters > 0 ? Math.round((readCount / totalChapters) * 100) : 0;
             const lastReadId = userData.lastRead[id];
             const lastReadChapter = webtoon.chapters?.find(ch => ch.id === lastReadId);
-            acc.push({ ...webtoon, progress, readCount, totalChapters, lastChapterTitle: lastReadChapter?.title || "En curso" });
+            acc.push({ ...webtoon, progress, readCount, totalChapters, lastChapterTitle: lastReadChapter?.title || t('profile_en_curso') });
             return acc;
         }, []);
     }, [webtoons, userData.history, userData.readChapters, userData.lastRead]);
 
     const getViewTitle = () => {
         switch (viewMode) {
-            case 'favorites': return "Tus Favoritos";
-            case 'following': return "Autores que Sigues";
-            case 'history': return "Historial de Lectura";
-            default: return "Perfil";
+            case 'favorites': return t('profile_view_favorites');
+            case 'following': return t('profile_view_following');
+            case 'history': return t('profile_view_history');
+            default: return t('profile_title');
         }
     };
 
@@ -235,7 +239,7 @@ export default function ProfilePage() {
                 ))
             ) : (
                 <div className="py-20 text-center text-gray-400 font-bold text-sm">
-                    Sin contenido disponible.
+                    {t('profile_no_content')}
                 </div>
             )}
         </div>
@@ -271,12 +275,12 @@ export default function ProfilePage() {
                                 <div className="flex items-center gap-5 relative z-10">
                                     <div className="relative">
                                         <div className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl font-black shadow-xl border-4 overflow-hidden relative ${userData.isFounder
-                                            ? "border-transparent bg-gradient-to-tr from-pi-purple via-amber-500 to-indigo-600 p-[3px] animate-gradient-xy"
+                                            ? "ring-4 ring-amber-400 ring-offset-4 ring-offset-slate-50 border-transparent bg-gradient-to-tr from-pi-purple via-amber-500 to-indigo-600 p-[3px] animate-gradient-xy shadow-[0_0_20px_rgba(245,158,11,0.5)]"
                                             : userData.subscription?.type === '1y'
                                                 ? "border-amber-400 shadow-amber-200/50"
                                                 : userData.subscription?.type === '6m'
                                                     ? "border-blue-400 shadow-blue-200/50"
-                                                    : userData.subscription?.type === '1m'
+                                                    : (userData.subscription?.type === '1m' || userData.subscription?.type === '7d')
                                                         ? "border-pi-purple/50 shadow-pi-purple/20"
                                                         : "border-white"
                                             }`}>
@@ -306,17 +310,17 @@ export default function ProfilePage() {
                                         <div className="flex items-center gap-2 mb-1">
                                             <h1 className="text-xl font-black text-slate-900">{username}</h1>
                                             {userData.isFounder ? (
-                                                <div className="px-2 py-0.5 bg-slate-900 text-white text-[10px] font-black rounded uppercase flex items-center gap-1 shadow-lg border border-white/20">
-                                                    <Crown size={10} fill="currentColor" className="text-amber-400" /> Fundador
+                                                <div className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black rounded uppercase flex items-center gap-1 shadow-lg border border-white/20 animate-pulse">
+                                                    <Crown size={10} fill="currentColor" className="text-white" /> Fundador Inktoons
                                                 </div>
                                             ) : userData.subscription && (
                                                 <div className="px-2 py-0.5 bg-pi-gold/10 text-pi-gold-dark text-[10px] font-black rounded uppercase flex items-center gap-1">
-                                                    <Crown size={10} fill="currentColor" /> {userData.subscription.type.toUpperCase()}
+                                                    <Crown size={10} fill="currentColor" /> {userData.subscription.type === '7d' ? t('wallet_7_days').toUpperCase() : userData.subscription.type.toUpperCase()}
                                                 </div>
                                             )}
                                         </div>
                                         <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">
-                                            {userData.isFounder ? "Miembro Fundador Inktoons" : "Pi Pioneer Creator"}
+                                            {userData.isFounder ? t('profile_founder_desc') : t('profile_pioneer_desc')}
                                         </p>
                                     </div>
                                 </div>
@@ -344,13 +348,13 @@ export default function ProfilePage() {
                             {/* MY CONTENT SECTION - COLLAPSIBLE */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Mi Contenido</h3>
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">{t('profile_my_content')}</h3>
                                     {webtoons.filter(w => w.author === username).length > 3 && (
                                         <button
                                             onClick={() => setIsMyContentExpanded(!isMyContentExpanded)}
                                             className="text-[10px] font-black text-pi-purple uppercase tracking-widest flex items-center gap-1 hover:underline"
                                         >
-                                            {isMyContentExpanded ? "Ver menos" : `Ver todos (${webtoons.filter(w => w.author === username).length})`}
+                                            {isMyContentExpanded ? t('profile_ver_menos') : `${t('profile_ver_todos')} (${webtoons.filter(w => w.author === username).length})`}
                                             <ChevronRight size={14} className={isMyContentExpanded ? "-rotate-90 transition-transform" : "rotate-90 transition-transform"} />
                                         </button>
                                     )}
@@ -377,7 +381,7 @@ export default function ProfilePage() {
                                                         <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{ink.title}</h4>
                                                         <div className="flex items-center gap-3 text-[10px] text-slate-400">
                                                             <span className="flex items-center gap-1"><Star size={10} className="text-pi-gold" fill="currentColor" /> {ink.rating?.toFixed(1) || "0.0"}</span>
-                                                            <span className="flex items-center gap-1"><BookOpen size={10} /> {ink.chapters?.length || 0} Caps</span>
+                                                            <span className="flex items-center gap-1"><BookOpen size={10} /> {ink.chapters?.length || 0} {t('profile_caps')}</span>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center pr-2">
@@ -390,7 +394,7 @@ export default function ProfilePage() {
                                     ) : (
                                         <div onClick={() => router.push('/upload')} className="bg-white border-2 border-dashed border-slate-100 rounded-2xl p-8 flex flex-col items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors">
                                             <Upload className="text-slate-300" size={32} />
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sube tu primer Inktoon</p>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('profile_upload_first')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -407,8 +411,8 @@ export default function ProfilePage() {
                                             <Shield className="text-pink-500" size={22} />
                                         </div>
                                         <div>
-                                            <span className="font-bold text-slate-700 block">Filtro de Contenido</span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Censurar +18 / Gore</span>
+                                            <span className="font-bold text-slate-700 block">{t('profile_filter_content')}</span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('profile_censorship')}</span>
                                         </div>
                                     </div>
                                     <div className={`relative w-11 h-6 rounded-full transition-colors ${userData.censorshipEnabled ? 'bg-pi-purple' : 'bg-slate-200'}`}>
@@ -416,28 +420,75 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-pi-purple/30 transition-all">
-                                    <div className="flex items-center gap-4 mb-3">
-                                        <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center">
-                                            <Wallet className="text-amber-500" size={22} />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* SELECT LANGUAGE */}
+                                    <div className="bg-white rounded-3xl border border-slate-200 p-6 hover:border-pi-purple/30 transition-all flex flex-col h-full relative overflow-hidden group">
+                                        {/* Decorative element */}
+                                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-50 rounded-full blur-3xl group-hover:bg-pi-purple/10 transition-colors" />
+
+                                        <div className="flex items-center gap-4 mb-6 relative z-10">
+                                            <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                                <Languages className="text-indigo-500" size={28} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-extrabold text-slate-800 text-lg leading-tight">{t('profile_language')}</h3>
+                                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{t('profile_language_desc')}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span className="font-bold text-slate-700 block">Tu Billetera Pi</span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Para recibir propinas</span>
+
+                                        <div className="grid grid-cols-1 gap-2 relative z-10 mt-auto">
+                                            {[
+                                                { id: 'es', name: 'Español', flag: '🇪🇸' },
+                                                { id: 'en', name: 'English', flag: '🇺🇸' },
+                                                { id: 'pt', name: 'Português', flag: '🇧🇷' },
+                                                { id: 'fr', name: 'Français', flag: '🇫🇷' }
+                                            ].map((lang) => (
+                                                <button
+                                                    key={lang.id}
+                                                    onClick={() => setLanguage(lang.id as Language)}
+                                                    className={`flex items-center gap-4 px-5 py-4 rounded-2xl border text-sm font-black transition-all active:scale-[0.97] ${language === lang.id
+                                                        ? 'bg-pi-purple text-white border-pi-purple shadow-xl shadow-pi-purple/20'
+                                                        : 'bg-slate-50 text-slate-600 border-slate-100 hover:border-pi-purple/30 hover:bg-white'
+                                                        }`}
+                                                >
+                                                    {/* Flag removed as per request */}
+                                                    <span className="flex-1 text-left">{lang.name}</span>
+                                                    {language === lang.id && (
+                                                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                                    )}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Pega tu dirección pública..."
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-pi-purple/50 focus:ring-1 focus:ring-pi-purple/50 font-mono"
-                                            defaultValue={userData.walletAddress || ""}
-                                            onBlur={(e) => updateWalletAddress(e.target.value)}
-                                        />
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"><Save size={14} /></div>
+
+                                    {/* WALLET */}
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-pi-purple/30 transition-all flex flex-col h-full">
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                                                <Wallet className="text-amber-500" size={24} />
+                                            </div>
+                                            <div>
+                                                <span className="font-bold text-slate-700 block leading-tight">{t('profile_wallet')}</span>
+                                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('profile_wallet_desc')}</span>
+                                            </div>
+                                        </div>
+                                        <div className="mt-auto space-y-2">
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    placeholder={t('profile_wallet_placeholder')}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-pi-purple/50 focus:ring-1 focus:ring-pi-purple/50 font-mono"
+                                                    defaultValue={userData.walletAddress || ""}
+                                                    onBlur={(e) => updateWalletAddress(e.target.value)}
+                                                />
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"><Save size={14} /></div>
+                                            </div>
+                                            <p className="text-[9px] text-slate-400 font-bold px-1 italic">{t('profile_wallet_autosave')}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
 
                         </motion.div>
                     ) : (
@@ -476,23 +527,23 @@ export default function ProfilePage() {
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 flex justify-between items-center z-[50]">
                 <button onClick={() => router.push("/")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Home size={22} />
-                    <span className="text-[10px] font-bold">Inicio</span>
+                    <span className="text-[10px] font-bold">{t('nav_home')}</span>
                 </button>
                 <button onClick={() => router.push("/explore")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Search size={22} />
-                    <span className="text-[10px] font-bold">Explorar</span>
+                    <span className="text-[10px] font-bold">{t('nav_explore')}</span>
                 </button>
                 <button onClick={() => router.push("/upload")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Upload size={22} />
-                    <span className="text-[10px] font-bold">Subir</span>
+                    <span className="text-[10px] font-bold">{t('nav_upload')}</span>
                 </button>
                 <button onClick={() => router.push("/library")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <BookOpen size={22} />
-                    <span className="text-[10px] font-bold">Biblioteca</span>
+                    <span className="text-[10px] font-bold">{t('nav_library')}</span>
                 </button>
                 <button onClick={() => setViewMode('main')} className="text-pi-purple transition-all flex flex-col items-center gap-1">
                     <User size={22} fill="currentColor" />
-                    <span className="text-[10px] font-bold">Perfil</span>
+                    <span className="text-[10px] font-bold">{t('nav_profile')}</span>
                 </button>
             </div>
         </div>

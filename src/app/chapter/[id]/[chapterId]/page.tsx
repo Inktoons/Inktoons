@@ -120,27 +120,76 @@ export default function ChapterReaderPage() {
 
         setIsDownloading(true);
         try {
-            // Sequential download for mobile stability
-            for (let i = 0; i < (chapter.images || []).length; i++) {
-                const imgUrl = chapter.images![i];
-                const response = await fetch(imgUrl);
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${webtoon.title}_${chapter.title}_p${i + 1}.jpg`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                // Pause between downloads
-                await new Promise(r => setTimeout(r, 300));
+            const { jsPDF } = await import("jspdf");
+            const pdf = new jsPDF({
+                orientation: "p",
+                unit: "px",
+            });
+
+            const images = chapter.images || [];
+            if (images.length === 0) {
+                alert("Este capítulo no tiene imágenes para descargar.");
+                setIsDownloading(false);
+                return;
             }
+
+            for (let i = 0; i < images.length; i++) {
+                const imgUrl = images[i];
+
+                const img: HTMLImageElement = await new Promise((resolve, reject) => {
+                    const tempImg = new Image();
+                    tempImg.crossOrigin = "anonymous";
+                    tempImg.onload = () => resolve(tempImg);
+                    tempImg.onerror = () => reject(new Error(`No se pudo cargar la imagen ${i + 1}`));
+                    tempImg.src = imgUrl;
+                });
+
+                const imgWidth = img.naturalWidth || 800;
+                const imgHeight = img.naturalHeight || 1200;
+
+                // Fixed width for consistency
+                const pdfWidth = 800;
+                const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
+
+                if (i === 0) {
+                    pdf.deletePage(1);
+                }
+
+                pdf.addPage([pdfWidth, pdfHeight], "p");
+
+                // Attempt to add image as JPEG for better compression/speed
+                try {
+                    pdf.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                } catch (e) {
+                    // Fallback to PNG if JPEG conversion fails (useful for transparency or certain formats)
+                    pdf.addImage(img, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                }
+
+                // Progress feedback (could be improved with a secondary state, but let's keep it simple)
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 50));
+            }
+
+            const safeTitle = `${webtoon.title}_${chapter.title}`.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+
+            // Generate Blob instead of direct save for better mobile compatibility
+            const pdfBlob = pdf.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${safeTitle}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 100);
+
             trackAction('DOWNLOAD_CHAPTER', { seriesId: id, chapterId });
-            alert("Descarga completada. Revisa tu carpeta de descargas.");
+            alert("¡Éxito! El capítulo se está descargando como PDF único. Revisa tu carpeta de descargas.");
         } catch (error) {
             console.error("Download error:", error);
-            alert("Error al descargar. Asegúrate de tener conexión.");
+            alert("Error al generar el archivo único. Asegúrate de que las imágenes se carguen correctamente.");
         } finally {
             setIsDownloading(false);
         }
@@ -184,7 +233,12 @@ export default function ChapterReaderPage() {
                     >
                         <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
                     </button>
-                    <button className="p-2 hover:bg-white/10 rounded-full"><MessageSquare size={20} /></button>
+                    <button
+                        onClick={() => router.push(`/news/${id}?tab=comments`)}
+                        className="p-2 hover:bg-white/10 rounded-full"
+                    >
+                        <MessageSquare size={20} />
+                    </button>
                 </div>
             </header>
 

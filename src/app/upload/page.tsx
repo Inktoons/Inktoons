@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
+import { useLanguage } from "@/context/LanguageContext";
+import BottomNavbar from "@/components/BottomNavbar";
 
 interface CustomPromptProps {
     isOpen: boolean;
@@ -21,6 +23,7 @@ interface CustomPromptProps {
 }
 
 function CustomPrompt({ isOpen, title, value, onConfirm, onCancel }: CustomPromptProps) {
+    const { t } = useLanguage();
     const [tempValue, setTempValue] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -59,7 +62,7 @@ function CustomPrompt({ isOpen, title, value, onConfirm, onCancel }: CustomPromp
                             className="w-full p-5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-lg font-bold text-black focus:border-pi-purple focus:bg-white outline-none transition-all min-h-[150px] resize-none"
                             value={tempValue}
                             onChange={(e) => setTempValue(e.target.value)}
-                            placeholder="Escribe aquí..."
+                            placeholder={t('upload_write_here')}
                             autoComplete="off"
                         />
                         {/* Botón de ayuda para forzar teclado si falla el auto-focussing */}
@@ -76,13 +79,13 @@ function CustomPrompt({ isOpen, title, value, onConfirm, onCancel }: CustomPromp
                             onClick={onCancel}
                             className="flex-1 py-4 bg-gray-100 text-gray-500 font-black rounded-2xl hover:bg-gray-200 transition-colors"
                         >
-                            CANCELAR
+                            {t('upload_cancel')}
                         </button>
                         <button
                             onClick={() => onConfirm(tempValue)}
                             className="flex-1 py-4 bg-pi-purple text-white font-black rounded-2xl shadow-lg shadow-pi-purple/20 active:scale-95 transition-all"
                         >
-                            ACEPTAR
+                            {t('upload_accept')}
                         </button>
                     </div>
                 </div>
@@ -98,6 +101,7 @@ function UploadPageContent() {
     const chapterIdFromQuery = searchParams.get("chapterId"); // New for edit mode
 
     const { webtoons, addWebtoon, addChapter, updateChapter, uploadImage } = useContent();
+    const { t } = useLanguage();
     const { user } = usePi();
     const { userData } = useUserData();
 
@@ -184,7 +188,7 @@ function UploadPageContent() {
 
     // Handle Custom Prompt
     const openPrompt = (label: string, field: string, value: string) => {
-        setPromptConfig({ isOpen: true, title: `Introduce ${label}`, field, value });
+        setPromptConfig({ isOpen: true, title: `${t('upload_introduce')} ${label}`, field, value });
     };
 
     const handlePromptConfirm = (val: string) => {
@@ -253,27 +257,27 @@ function UploadPageContent() {
 
     const handleSubmitWebtoon = async () => {
         if (!title || !coverImage) {
-            alert("Por favor, rellena el título y selecciona una portada.");
+            alert(t('upload_error_missing_fields'));
             return;
         }
         if (!description || description.trim().length < 10) {
-            alert("La sinopsis es obligatoria (mínimo 10 caracteres).");
+            alert(t('upload_error_synopsis'));
             return;
         }
         if (selectedGenres.length === 0) {
-            alert("Debes seleccionar al menos un género.");
+            alert(t('upload_error_genres'));
             return;
         }
         setIsSubmitting(true);
-        setStatusMessage("Subiendo portada...");
+        setStatusMessage(t('upload_status_cover'));
 
         try {
             const finalCoverUrl = coverFile ? (await uploadImage(coverFile)) : coverImage;
 
-            setStatusMessage("Subiendo banner...");
+            setStatusMessage(t('upload_status_banner'));
             const finalBannerUrl = bannerFile ? (await uploadImage(bannerFile)) : bannerImage;
 
-            setStatusMessage("Creando mundo...");
+            setStatusMessage(t('upload_status_world'));
             await new Promise(r => setTimeout(r, 1000));
 
             const id = Math.random().toString(36).substr(2, 9);
@@ -299,18 +303,18 @@ function UploadPageContent() {
             setSelectedWebtoonId(id);
             setIsSubmitting(false);
             setIsSuccess(true);
-            setStatusMessage("Inktoon subido");
+            setStatusMessage(t('upload_success'));
             setTimeout(() => { setIsSuccess(false); setActiveTab(2); }, 2000);
         } catch (error: any) {
             console.error("Error submitting webtoon:", error);
-            alert("Hubo un problema al publicar. Por favor, revisa tu conexión e intenta de nuevo.");
+            alert(t('upload_error_generic'));
             setIsSubmitting(false);
         }
     };
 
     const handleSubmitChapter = async () => {
         if (!chapterTitle || !selectedWebtoonId) {
-            alert("Título del capítulo necesario.");
+            alert(t('upload_error_chapter_title'));
             return;
         }
 
@@ -318,14 +322,14 @@ function UploadPageContent() {
         if (!targetWebtoon) return;
 
         setIsSubmitting(true);
-        setStatusMessage("Preparando imágenes...");
+        setStatusMessage(t('upload_status_preparing'));
 
         try {
             // Upload images sequentially to avoid overwhelming
             const finalImages: string[] = [];
             for (let i = 0; i < chapterPages.length; i++) {
                 const page = chapterPages[i];
-                setStatusMessage(`Subiendo página ${i + 1}/${chapterPages.length}...`);
+                setStatusMessage(`${t('upload_status_pages')} ${i + 1}/${chapterPages.length}...`);
                 if (page.file) {
                     const url = await uploadImage(page.file);
                     if (url) finalImages.push(url);
@@ -335,7 +339,7 @@ function UploadPageContent() {
                 }
             }
 
-            setStatusMessage("Guardando capítulo...");
+            setStatusMessage(t('upload_status_saving'));
             await new Promise(r => setTimeout(r, 1000));
 
             if (isEditMode && chapterIdFromQuery) {
@@ -372,12 +376,12 @@ function UploadPageContent() {
 
             setIsSubmitting(false);
             setIsSuccess(true);
-            setStatusMessage("¡Listo!");
+            setStatusMessage(t('upload_success_chapter'));
             flushObjectURLs();
             setTimeout(() => router.push(`/news/${selectedWebtoonId}`), 2000);
         } catch (error: any) {
             console.error("Error submitting chapter:", error);
-            alert("No se pudo subir el capítulo. Inténtalo de nuevo en unos momentos.");
+            alert(language === 'es' ? "No se pudo subir el capítulo. Inténtalo de nuevo en unos momentos." : "Could not upload chapter. Try again in a few moments.");
             setIsSubmitting(false);
         }
     };
@@ -404,7 +408,7 @@ function UploadPageContent() {
                         <ArrowLeft size={22} className="text-gray-700" />
                     </button>
                     <h1 className="font-extrabold text-xl bg-gradient-to-r from-pi-purple to-indigo-600 bg-clip-text text-transparent">
-                        {isEditMode ? "Editar Capítulo" : (webtoonIdFromQuery ? "Nuevo Capítulo" : "Subir a Inktoons")}
+                        {isEditMode ? t('upload_edit_chapter') : (webtoonIdFromQuery ? t('upload_new_chapter') : t('upload_title'))}
                     </h1>
                 </div>
             </header>
@@ -413,11 +417,11 @@ function UploadPageContent() {
             {!webtoonIdFromQuery && (
                 <div className="px-4 bg-white border-b border-gray-100 flex">
                     <button onClick={() => setActiveTab(1)} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest relative ${activeTab === 1 ? 'text-pi-purple' : 'text-gray-400'}`}>
-                        1. Datos
+                        1. {t('upload_step_1')}
                         {activeTab === 1 && <motion.div layoutId="tab-u" className="absolute bottom-0 left-6 right-6 h-1 bg-pi-purple rounded-full" />}
                     </button>
                     <button onClick={() => selectedWebtoonId && setActiveTab(2)} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest relative ${activeTab === 2 ? 'text-pi-purple' : 'text-gray-400'} ${!selectedWebtoonId ? 'opacity-30' : ''}`}>
-                        2. Capítulos
+                        2. {t('upload_step_2')}
                         {activeTab === 2 && <motion.div layoutId="tab-u" className="absolute bottom-0 left-6 right-6 h-1 bg-pi-purple rounded-full" />}
                     </button>
                 </div>
@@ -429,12 +433,12 @@ function UploadPageContent() {
                         {/* Image Uploads */}
                         <div className="grid grid-cols-2 gap-4">
                             <div onClick={() => coverInputRef.current?.click()} className="aspect-[3/4] rounded-2xl bg-white border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden relative">
-                                {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">Portada*</span></>}
+                                {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">{t('upload_cover')}</span></>}
                                 <input ref={coverInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} />
                                 {!coverImage && <span className="absolute top-2 right-2 text-red-500 font-bold">*</span>}
                             </div>
                             <div onClick={() => bannerInputRef.current?.click()} className="aspect-[3/4] rounded-2xl bg-white border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden">
-                                {bannerImage ? <img src={bannerImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">Banner</span></>}
+                                {bannerImage ? <img src={bannerImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">{t('upload_banner')}</span></>}
                                 <input ref={bannerInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} />
                             </div>
                         </div>
@@ -442,14 +446,14 @@ function UploadPageContent() {
                         {/* Text Fields */}
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Título del Inktoon <span className="text-red-500">*</span></label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_inktoon_title')} <span className="text-red-500">*</span></label>
                                 <div onClick={() => openPrompt("Inktoon", "title", title)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-lg flex justify-between items-center active:bg-gray-50">
-                                    <span className={title ? "text-black font-bold" : "text-gray-300"}>{title || "Nombre de tu Inktoon..."}</span>
+                                    <span className={title ? "text-black font-bold" : "text-gray-300"}>{title || t('upload_inktoon_placeholder')}</span>
                                     <Edit3 size={18} className="text-pi-purple/40" />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Autor</label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_field_author')}</label>
                                 <div className="w-full p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex justify-between items-center group transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white font-black text-xs border-2 border-white shadow-sm overflow-hidden">
@@ -459,36 +463,36 @@ function UploadPageContent() {
                                                 <span>{user?.username?.charAt(0).toUpperCase() || "?"}</span>
                                             )}
                                         </div>
-                                        <span className="text-black font-extrabold text-sm">{user?.username || "Conectando..."}</span>
+                                        <span className="text-black font-extrabold text-sm">{user?.username || t('upload_author_connecting')}</span>
                                     </div>
                                     <div className="px-2 py-1 bg-gray-200/50 rounded-lg">
                                         <Lock size={14} className="text-gray-400" />
                                     </div>
                                 </div>
-                                <p className="text-[8px] font-black text-pi-purple/40 uppercase tracking-tighter ml-1">Usando tu identidad oficial de Pi Network</p>
+                                <p className="text-[8px] font-black text-pi-purple/40 uppercase tracking-tighter ml-1">{t('upload_using_identity')}</p>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Artista</label>
-                                <div onClick={() => openPrompt("Artista", "artist", artist)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50">
-                                    <span className={artist ? "text-black font-bold" : "text-gray-300"}>{artist || "Nombre del artista..."}</span>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_field_artist')}</label>
+                                <div onClick={() => openPrompt(t('upload_field_artist'), "artist", artist)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50">
+                                    <span className={artist ? "text-black font-bold" : "text-gray-300"}>{artist || t('upload_artist_placeholder')}</span>
                                     <Edit3 size={18} className="text-pi-purple/40" />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Alternativa(s)</label>
-                                <div onClick={() => openPrompt("Alternativas", "alternatives", alternatives)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50">
-                                    <span className={alternatives ? "text-black font-bold" : "text-gray-300"}>{alternatives || "Nick nombre, otro nick name..."}</span>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_field_alternatives')}</label>
+                                <div onClick={() => openPrompt(t('upload_field_alternatives'), "alternatives", alternatives)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50">
+                                    <span className={alternatives ? "text-black font-bold" : "text-gray-300"}>{alternatives || t('upload_alternatives_placeholder')}</span>
                                     <Edit3 size={18} className="text-pi-purple/40" />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Sinopsis / Descripción <span className="text-red-500">*</span></label>
-                                <div onClick={() => openPrompt("Sinopsis", "description", description)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50 min-h-[100px]">
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_synopsis')} <span className="text-red-500">*</span></label>
+                                <div onClick={() => openPrompt(t('upload_synopsis'), "description", description)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50 min-h-[100px]">
                                     <span className={description ? "text-black font-bold text-sm leading-relaxed" : "text-gray-300 text-sm"}>
-                                        {description || "Escribe una breve descripción de tu historia..."}
+                                        {description || t('upload_synopsis_placeholder')}
                                     </span>
                                     <Edit3 size={18} className="text-pi-purple/40 flex-shrink-0" />
                                 </div>
@@ -496,25 +500,25 @@ function UploadPageContent() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Estado</label>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('explore_status')}</label>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setStatus("ongoing")}
                                             className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-black transition-all border-2 ${status === "ongoing" ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
                                         >
-                                            EN MARCHA
+                                            {t('upload_ongoing')}
                                         </button>
                                         <button
                                             onClick={() => setStatus("completed")}
                                             className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-black transition-all border-2 ${status === "completed" ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
                                         >
-                                            TERMINADO
+                                            {t('upload_completed')}
                                         </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Año</label>
-                                    <button onClick={() => openPrompt("Año", "year", year)} className="w-full bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_year_label')}</label>
+                                    <button onClick={() => openPrompt(t('upload_year_label'), "year", year)} className="w-full bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
                                         <span className="font-black text-pi-purple">{year}</span>
                                         <Calendar size={14} className="text-pi-purple opacity-40" />
                                     </button>
@@ -522,15 +526,20 @@ function UploadPageContent() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Idioma</label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_language_label')}</label>
                                 <div className="grid grid-cols-4 gap-2">
-                                    {["Español", "Inglés", "Portugués", "Francés"].map(lang => (
+                                    {[
+                                        { id: "Español", label: t('upload_esp') || "ESP" },
+                                        { id: "Inglés", label: t('upload_eng') || "ING" },
+                                        { id: "Portugués", label: t('upload_por') || "POR" },
+                                        { id: "Francés", label: t('upload_fra') || "FRA" }
+                                    ].map(lang => (
                                         <button
-                                            key={lang}
-                                            onClick={() => setLanguage(lang)}
-                                            className={`py-2 rounded-xl text-[10px] font-black border-2 transition-all ${language === lang ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
+                                            key={lang.id}
+                                            onClick={() => setLanguage(lang.id)}
+                                            className={`py-2 rounded-xl text-[10px] font-black border-2 transition-all ${language === lang.id ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
                                         >
-                                            {lang.toUpperCase().substring(0, 3)}
+                                            {lang.label}
                                         </button>
                                     ))}
                                 </div>
@@ -538,7 +547,7 @@ function UploadPageContent() {
 
                             {/* Géneros Grid */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Géneros <span className="text-red-500">* (Selecciona al menos 1)</span></label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_genres_label')} <span className="text-red-500">{t('upload_genres_sub')}</span></label>
                                 <div className="flex flex-wrap gap-2">
                                     {genres.map(genre => (
                                         <button
@@ -569,7 +578,7 @@ function UploadPageContent() {
                         >
                             <div className="flex items-center gap-3">
                                 {isSubmitting ? <Loader2 className="animate-spin" /> : <Upload />}
-                                {isSubmitting ? "SUBIENDO INKTOON..." : isSuccess ? "INKTOON SUBIDO" : "PUBLICAR INKTOON"}
+                                {isSubmitting ? t('upload_publishing') : isSuccess ? t('upload_success') : t('upload_publish')}
                             </div>
                             {isSubmitting && statusMessage && (
                                 <span className="text-[10px] opacity-70 animate-pulse">{statusMessage}</span>
@@ -580,9 +589,9 @@ function UploadPageContent() {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                         {/* Chapter Title Section */}
                         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">01. Nombre del capítulo:</h3>
-                            <div onClick={() => openPrompt("Capítulo", "chapterTitle", chapterTitle)} className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl flex justify-between items-center active:scale-[0.98] transition-transform">
-                                <span className={chapterTitle ? "text-black font-bold" : "text-gray-400"}>{chapterTitle || "Ej: Cap 01"}</span>
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">01. {t('upload_chapter_name_label')}</h3>
+                            <div onClick={() => openPrompt(t('upload_field_chapter_title'), "chapterTitle", chapterTitle)} className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl flex justify-between items-center active:scale-[0.98] transition-transform">
+                                <span className={chapterTitle ? "text-black font-bold" : "text-gray-400"}>{chapterTitle || t('upload_chapter_name_placeholder')}</span>
                                 {chapterTitle ? <Check className="text-green-500" size={18} /> : <Edit3 size={18} className="text-pi-purple/40" />}
                             </div>
                         </div>
@@ -590,13 +599,13 @@ function UploadPageContent() {
                         {/* Chapter Images Section */}
                         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">02. Elige fotos:</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">02. {t('upload_choose_photos')}:</h3>
                                 <button
                                     onClick={() => setIsPreviewMode(!isPreviewMode)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black transition-all ${isPreviewMode ? 'bg-pi-purple text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                                 >
                                     {isPreviewMode ? <Eye size={14} /> : <Play size={14} />}
-                                    {isPreviewMode ? "CERRAR VISTA" : "VISTA PREVIA"}
+                                    {isPreviewMode ? t('upload_close_view') : t('upload_preview')}
                                 </button>
                             </div>
 
@@ -607,7 +616,7 @@ function UploadPageContent() {
                                             <img key={page.id} src={page.url} className="w-full rounded-lg shadow-md" alt={`Página ${i}`} />
                                         ))
                                     ) : (
-                                        <div className="py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">No hay páginas para previsualizar</div>
+                                        <div className="py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">{t('upload_no_preview')}</div>
                                     )}
                                 </div>
                             ) : (
@@ -617,7 +626,7 @@ function UploadPageContent() {
                                         onClick={() => pagesInputRef.current?.click()}
                                         className="w-fit px-6 py-3 bg-blue-500 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                                     >
-                                        Elige fotos
+                                        {t('upload_choose_photos')}
                                     </button>
 
                                     {/* Pages List */}
@@ -677,9 +686,9 @@ function UploadPageContent() {
 
                             <input ref={pagesInputRef} type="file" multiple className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'pages')} />
                             <div className="pt-4 space-y-1">
-                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">* Solo soporte .jpg .jpeg .png .gif</p>
-                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">* Soporta carga por lotes</p>
-                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">* arrastre para ordenar</p>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t('upload_format_disclaimer')}</p>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t('upload_batch_disclaimer')}</p>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t('upload_order_disclaimer')}</p>
                             </div>
                         </div>
 
@@ -693,10 +702,10 @@ function UploadPageContent() {
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="font-black text-sm text-gray-800">Modo Early Access</h3>
+                                        <h3 className="font-black text-sm text-gray-800">{t('upload_early_access_label')}</h3>
                                         <div className="px-1.5 py-0.5 bg-pi-gold/10 text-pi-gold-dark text-[8px] font-black rounded uppercase">Premium</div>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Monetiza tu capítulo por 3 días</p>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('upload_early_access_sub')}</p>
                                 </div>
                                 <button
                                     disabled={isEditMode}
@@ -714,7 +723,7 @@ function UploadPageContent() {
                             </div>
 
                             {isEditMode && (
-                                <p className="text-[9px] font-bold text-pi-purple/60 uppercase">* Los ajustes de Early Access son permanentes y no se pueden modificar tras la publicación.</p>
+                                <p className="text-[9px] font-bold text-pi-purple/60 uppercase">{t('upload_edit_warning')}</p>
                             )}
 
                             <AnimatePresence>
@@ -731,11 +740,11 @@ function UploadPageContent() {
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-[11px] font-black text-amber-900 uppercase tracking-tight flex items-center justify-between">
-                                                    Coste de lectura: <span>60 INKS</span>
+                                                    {t('upload_reading_cost')} <span>60 INKS</span>
                                                 </p>
                                                 <div className="h-px bg-amber-200/30 my-2" />
                                                 <p className="text-[10px] font-bold text-amber-700 leading-relaxed italic">
-                                                    "Este capítulo será exclusivo para usuarios de pago durante 72 horas. Después, todos podrán leerlo GRATIS automáticamente."
+                                                    "{t('upload_early_access_info')}"
                                                 </p>
                                             </div>
                                         </div>
@@ -765,12 +774,12 @@ function UploadPageContent() {
 
                                 <span>
                                     {isSubmitting
-                                        ? "PUBLICANDO..."
+                                        ? t('upload_publishing')
                                         : isSuccess
-                                            ? (isEditMode ? "CAMBIOS GUARDADOS" : "CAPÍTULO PUBLICADO")
+                                            ? (isEditMode ? t('upload_success_changes') : t('upload_success_chapter'))
                                             : isMonetized
-                                                ? "LANZAR EN EARLY ACCESS"
-                                                : (isEditMode ? "GUARDAR CAMBIOS" : "PUBLICAR CAPÍTULO GRATIS")}
+                                                ? t('upload_early_access')
+                                                : (isEditMode ? t('upload_save') : t('upload_publish_free'))}
                                 </span>
                             </div>
 
@@ -781,6 +790,8 @@ function UploadPageContent() {
                     </motion.div>
                 )}
             </div>
+
+            <BottomNavbar />
         </div>
     );
 }

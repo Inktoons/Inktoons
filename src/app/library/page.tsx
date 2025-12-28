@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useUserData } from "@/context/UserDataContext";
 import { useContent, Webtoon } from "@/context/ContentContext";
+import { useLanguage } from "@/context/LanguageContext";
+import TopNavbar from "@/components/TopNavbar";
 import {
     Bell,
     Menu,
@@ -22,6 +24,7 @@ export default function LibraryPage() {
     const router = useRouter();
     const { userData } = useUserData();
     const { webtoons, loading } = useContent();
+    const { t, language } = useLanguage();
 
     // Interfaz para los items procesados de la biblioteca
     interface ReadingItem extends Webtoon {
@@ -37,9 +40,9 @@ export default function LibraryPage() {
         if (!webtoons.length) return [];
 
         // Filtramos y transformamos en un solo paso para evitar problemas de tipos con null
-        return userData.history.reduce<ReadingItem[]>((acc, id) => {
+        return userData.history.map(id => {
             const webtoon = webtoons.find(w => w.id === id);
-            if (!webtoon) return acc;
+            if (!webtoon) return null;
 
             const totalChapters = webtoon.chapters?.length || 0;
             const readChapters = userData.readChapters[id] || [];
@@ -52,27 +55,25 @@ export default function LibraryPage() {
 
             const lastReadId = userData.lastRead[id];
             const lastReadChapter = webtoon.chapters?.find(ch => ch.id === lastReadId);
-            const lastChapterTitle = lastReadChapter ? lastReadChapter.title : "Iniciado";
+            const lastChapterTitle = lastReadChapter ? lastReadChapter.title : (language === 'es' ? "Iniciado" : language === 'en' ? "Started" : language === 'pt' ? "Iniciado" : "Commencé");
 
-            acc.push({
+            return {
                 ...webtoon,
                 progress,
                 readCount,
                 totalChapters,
                 remainingCount,
                 lastChapterTitle
-            });
-
-            return acc;
-        }, []);
-    }, [webtoons, userData.history, userData.readChapters, userData.lastRead]);
+            } as ReadingItem;
+        }).filter((item): item is ReadingItem => item !== null);
+    }, [webtoons, userData.history, userData.readChapters, userData.lastRead, language]);
 
     if (loading) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pi-purple"></div>
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Cargando Biblioteca...</p>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('library_loading')}</p>
                 </div>
             </div>
         );
@@ -80,28 +81,16 @@ export default function LibraryPage() {
 
     return (
         <div className="min-h-screen bg-white text-slate-900 flex flex-col transition-colors duration-300">
-            {/* Header style matching reference */}
-            <header className="px-6 py-4 flex items-center justify-between border-b border-gray-50 bg-white">
-                <div
-                    className="text-2xl font-black tracking-tighter text-pi-purple cursor-pointer flex items-center gap-2"
-                    onClick={() => router.push("/")}
-                >
-                    <span>Inktoons</span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button className="p-2 text-gray-400 hover:text-black transition-colors"><Bell size={24} /></button>
-                    <button className="p-2 text-gray-400 hover:text-black transition-colors"><Menu size={24} /></button>
-                </div>
-            </header>
+            <TopNavbar />
 
             <main className="flex-1 max-w-[1200px] mx-auto w-full px-6 py-8">
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-2xl font-black flex items-center gap-3 text-slate-900">
                         <BookOpen className="text-pi-purple" size={24} />
-                        Tu Biblioteca
+                        {t('library_title')}
                     </h1>
                     <span className="text-xs font-black text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                        {readingNow.length} {readingNow.length === 1 ? 'HISTORIA' : 'HISTORIAS'}
+                        {readingNow.length} {readingNow.length === 1 ? t('library_historia') : t('library_historias')}
                     </span>
                 </div>
 
@@ -144,16 +133,16 @@ export default function LibraryPage() {
                                                     <span className="line-clamp-1">{item.lastChapterTitle}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-tight">
-                                                    <span>{item.readCount} leídos</span>
+                                                    <span>{item.readCount} {t('library_read')}</span>
                                                     <span className="w-1 h-1 bg-gray-100 rounded-full" />
-                                                    <span>{item.remainingCount} por leer</span>
+                                                    <span>{item.remainingCount} {t('library_to_read')}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="space-y-1.5 mt-2">
                                             <div className="flex justify-between text-[10px] font-black text-gray-400">
-                                                <span>PROGRESO</span>
+                                                <span>{t('library_progress')}</span>
                                                 <span className="text-pi-purple">{item.progress}%</span>
                                             </div>
                                             <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden">
@@ -175,15 +164,15 @@ export default function LibraryPage() {
                         <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 mb-6">
                             <BookOpen size={48} />
                         </div>
-                        <h2 className="text-xl font-black mb-2 text-slate-900">Tu Biblioteca está vacía</h2>
+                        <h2 className="text-xl font-black mb-2 text-slate-900">{t('library_empty')}</h2>
                         <p className="text-gray-400 text-sm max-w-xs mb-8">
-                            Empieza a leer tus historias favoritas y aparecerán aquí automáticamente.
+                            {t('library_empty_desc')}
                         </p>
                         <button
                             onClick={() => router.push("/")}
                             className="bg-black text-white px-10 py-3 rounded-full font-black hover:scale-105 transition-transform"
                         >
-                            Explorar Contenido
+                            {t('library_explore')}
                         </button>
                     </div>
                 )}
@@ -195,23 +184,23 @@ export default function LibraryPage() {
             <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-3 flex items-center justify-between z-50 transition-colors duration-300">
                 <button onClick={() => router.push("/")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Home size={22} />
-                    <span className="text-[10px] font-bold">Inicio</span>
+                    <span className="text-[10px] font-bold">{t('nav_home')}</span>
                 </button>
                 <button onClick={() => router.push("/explore")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Search size={22} />
-                    <span className="text-[10px] font-bold">Explorar</span>
+                    <span className="text-[10px] font-bold">{t('nav_explore')}</span>
                 </button>
                 <button onClick={() => router.push("/upload")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Upload size={22} />
-                    <span className="text-[10px] font-bold">Subir</span>
+                    <span className="text-[10px] font-bold">{t('nav_upload')}</span>
                 </button>
                 <button className="text-pi-purple transition-all flex flex-col items-center gap-1">
                     <BookOpen size={22} />
-                    <span className="text-[10px] font-bold">Biblioteca</span>
+                    <span className="text-[10px] font-bold">{t('nav_library')}</span>
                 </button>
                 <button onClick={() => router.push("/profile")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <User size={22} />
-                    <span className="text-[10px] font-bold">Perfil</span>
+                    <span className="text-[10px] font-bold">{t('nav_profile')}</span>
                 </button>
             </nav>
             <div className="h-24" />

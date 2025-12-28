@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import { Providers } from "@/components/Providers";
+import DevControlPanel from "@/components/DevControlPanel";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const poppins = Poppins({
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased`}>
         <Providers>
           {children}
+          <DevControlPanel />
         </Providers>
       </body>
     </html>

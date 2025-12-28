@@ -11,14 +11,22 @@ import { usePi } from "@/components/PiNetworkProvider";
 import { getRandomMissions, MissionData } from "@/lib/missions";
 import { useMissions } from "@/context/MissionContext";
 
+import { useLanguage } from "@/context/LanguageContext";
+import TopNavbar from "@/components/TopNavbar";
+import BottomNavbar from "@/components/BottomNavbar";
+
 export default function WalletPage() {
     const router = useRouter();
     const { userData, addBalance, setSubscription } = useUserData();
     const { user, createPayment } = usePi();
+    const { t, language } = useLanguage();
     const [loadingPack, setLoadingPack] = useState<number | null>(null);
     const [loadingPass, setLoadingPass] = useState<string | null>(null);
     const [showExplanation, setShowExplanation] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showRedeemModal, setShowRedeemModal] = useState(false);
+    const [redeemCode, setRedeemCode] = useState("");
+    const [redeeming, setRedeeming] = useState(false);
 
     const unreadCount = (userData.notifications || []).filter(n => !n.read).length;
     const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
@@ -66,32 +74,32 @@ export default function WalletPage() {
     const earlyAccessPasses = [
         {
             id: 'pass_1m',
-            duration: '1 Mes',
+            duration: language === 'es' ? '1 Mes' : language === 'en' ? '1 Month' : language === 'pt' ? '1 Mês' : '1 Mois',
             durationTime: 1, // months
             priceUsd: 10.00,
-            label: 'Pase Mensual',
-            features: ['Early Access sin gastar Inks', 'Descargas Offline'],
+            label: language === 'es' ? 'Pase Mensual' : language === 'en' ? 'Monthly Pass' : language === 'pt' ? 'Passe Mensal' : 'Passe Mensuel',
+            features: [language === 'es' ? 'Early Access sin gastar Inks' : 'Early Access without Inks', language === 'es' ? 'Descargas Offline' : 'Offline Downloads'],
             color: 'bg-gradient-to-br from-indigo-50 to-blue-50 border-blue-200',
             iconColor: 'text-indigo-500'
         },
         {
             id: 'pass_6m',
-            duration: '6 Meses',
+            duration: language === 'es' ? '6 Meses' : language === 'en' ? '6 Months' : language === 'pt' ? '6 Meses' : '6 Mois',
             durationTime: 6, // months
             priceUsd: 45.00,
-            label: 'Pase Semestral',
-            features: ['Early Access sin gastar Inks', 'Descargas Offline'],
-            tag: 'AHORRO',
+            label: language === 'es' ? 'Pase Semestral' : language === 'en' ? 'Semi-Annual Pass' : language === 'pt' ? 'Passe Semestral' : 'Passe Semestriel',
+            features: [language === 'es' ? 'Early Access sin gastar Inks' : 'Early Access without Inks', language === 'es' ? 'Descargas Offline' : 'Offline Downloads'],
+            tag: language === 'es' ? 'AHORRO' : 'SAVINGS',
             color: 'bg-gradient-to-br from-violet-50 to-purple-50 border-purple-200',
             iconColor: 'text-purple-500'
         },
         {
             id: 'pass_1y',
-            duration: '1 Año',
+            duration: language === 'es' ? '1 Año' : language === 'en' ? '1 Year' : language === 'pt' ? '1 Ano' : '1 An',
             durationTime: 12, // months
             priceUsd: 80.00,
-            label: 'Pase Anual',
-            features: ['Early Access sin gastar Inks', 'Descargas Offline', 'Insignia Exclusiva'],
+            label: language === 'es' ? 'Pase Anual' : language === 'en' ? 'Annual Pass' : language === 'pt' ? 'Passe Anual' : 'Passe Annuel',
+            features: [language === 'es' ? 'Early Access sin gastar Inks' : 'Early Access without Inks', language === 'es' ? 'Descargas Offline' : 'Offline Downloads', language === 'es' ? 'Insignia Exclusiva' : 'Exclusive Badge'],
             tag: 'PREMIUM',
             color: 'bg-gradient-to-br from-amber-50 to-orange-50 border-orange-200',
             iconColor: 'text-amber-500'
@@ -103,7 +111,7 @@ export default function WalletPage() {
             id: 1,
             amount: 50,
             priceUsd: 1.00,
-            label: "Puñado de Tinta",
+            label: language === 'es' ? "Puñado de Tinta" : language === 'en' ? "Handful of Ink" : language === 'pt' ? "Punhado de Tinta" : "Poignée d'Encre",
             bonus: 0,
             color: "bg-blue-50 border-blue-100",
             iconColor: "text-blue-500"
@@ -112,7 +120,7 @@ export default function WalletPage() {
             id: 2,
             amount: 150,
             priceUsd: 3.00,
-            label: "Frasco de Tinta",
+            label: language === 'es' ? "Frasco de Tinta" : language === 'en' ? "Jar of Ink" : language === 'pt' ? "Frasco de Tinta" : "Pot d'Encre",
             bonus: 10,
             tag: "POPULAR",
             color: "bg-pi-purple/10 border-pi-purple/20",
@@ -122,9 +130,9 @@ export default function WalletPage() {
             id: 3,
             amount: 500,
             priceUsd: 10.00,
-            label: "Barril de Tinta",
+            label: language === 'es' ? "Barril de Tinta" : language === 'en' ? "Barrel of Ink" : language === 'pt' ? "Barril de Tinta" : "Baril d'Encre",
             bonus: 100,
-            tag: "MEJOR VALOR",
+            tag: language === 'es' ? "MEJOR VALOR" : "BEST VALUE",
             color: "bg-amber-50 border-amber-100",
             iconColor: "text-amber-500"
         }
@@ -137,29 +145,22 @@ export default function WalletPage() {
         if (result.success) {
             addBalance(result.reward);
             // Feedback visual simple
-            alert(`¡Felicidades! Has reclamado ${result.reward} Inks.`);
+            alert(`${language === 'es' ? '¡Felicidades! Has reclamado' : language === 'pt' ? 'Parabéns! Você resgatou' : language === 'fr' ? 'Félicitations ! Vous avez réclamé' : 'Congratulations! You claimed'} ${result.reward} Inks.`);
         }
     };
 
     const handleReloadMission = (missionId: string) => {
-        // Find mission and check if cached replacement is available, or just use context logic
-        // This requires MissionContext to support single mission regeneration
-        // For now, we will assume we can't easily implement single reload in context without larger refactor,
-        // so we will just implement a simple visual feedback or modify context if possible.
-        // Let's modify context below or use existing regeneration for all.
-        // Actually user requested "solo recargar la mision 1 sola vez".
-        // We will call a new method replaceMission in context.
         replaceMission(missionId);
     };
 
     const handlePassPurchase = (pass: typeof earlyAccessPasses[0]) => {
         if (!user) {
-            alert("Debes conectar tu cuenta de Pi primero.");
+            alert(t('wallet_must_connect'));
             return;
         }
 
         if (!currentPiValue) {
-            alert("Esperando precio actualizado de Pi Network...");
+            alert(t('wallet_waiting_price'));
             return;
         }
 
@@ -169,13 +170,13 @@ export default function WalletPage() {
 
         createPayment(
             piCost,
-            `Suscripción ${pass.label}`,
+            `${t('wallet_subscription')} ${pass.label}`,
             { passId: pass.id, type: 'subscription' }, // Metadata
             () => { // onSuccess callback
                 setLoadingPass(null);
                 const subType = pass.id.replace('pass_', '') as '1m' | '6m' | '1y';
                 setSubscription(subType, pass.durationTime); // Update context
-                alert(`¡Suscripción exitosa! Ahora tienes acceso Early Access por ${pass.duration}.`);
+                alert(`${t('wallet_subscription_success')} ${pass.duration}.`);
             }
         ).catch(() => {
             setLoadingPass(null);
@@ -184,12 +185,12 @@ export default function WalletPage() {
 
     const handlePurchase = (pack: typeof packs[0]) => {
         if (!user) {
-            alert("Debes conectar tu cuenta de Pi primero.");
+            alert(t('wallet_must_connect'));
             return;
         }
 
         if (!currentPiValue) {
-            alert("Esperando precio actualizado de Pi Network...");
+            alert(t('wallet_waiting_price'));
             return;
         }
 
@@ -199,13 +200,13 @@ export default function WalletPage() {
 
         createPayment(
             piCost,
-            `Compra de ${pack.label} (${pack.amount + pack.bonus} Inks)`,
+            `${t('wallet_purchase_of')} ${pack.label} (${pack.amount + pack.bonus} Inks)`,
             { packId: pack.id, credits: pack.amount + pack.bonus }, // Metadata
             () => { // onSuccess callback
                 const total = pack.amount + pack.bonus;
                 addBalance(total);
                 setLoadingPack(null);
-                alert(`¡Compra exitosa! Has recibido ${total} Inks.`);
+                alert(`${t('wallet_purchase_success')} ${total} Inks.`);
             }
         ).catch(() => {
             setLoadingPack(null);
@@ -214,65 +215,17 @@ export default function WalletPage() {
 
     return (
         <div className="min-h-screen bg-white text-foreground">
-            {/* Header */}
-            <div className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <ArrowLeft size={20} />
-                    </button>
-                    <h1 className="font-black text-xl">Monedero</h1>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowNotifications(!showNotifications)}
-                            className={`p-2 rounded-full transition-colors relative ${showNotifications ? 'bg-pi-purple/10 text-pi-purple' : 'text-gray-500 hover:bg-gray-100'}`}
-                        >
-                            <Bell size={22} />
-                            {unreadCount > 0 && (
-                                <span className="absolute top-1 right-1 w-4 h-4 bg-[#FF4D4D] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
-                                </span>
-                            )}
-                        </button>
-                        <NotificationDropdown isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
-                    </div>
-
-                    <div
-                        onClick={() => router.push("/profile")}
-                        className="relative cursor-pointer group ml-1"
-                    >
-                        {isVIP && (
-                            <div className="absolute -inset-1 bg-gradient-to-tr from-amber-300 via-yellow-500 to-amber-600 rounded-full animate-spin-slow opacity-80 blur-[1px]" />
-                        )}
-                        <div className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white shadow-sm overflow-hidden relative z-10 border-2 border-white">
-                            {userData.profileImage ? (
-                                <img src={userData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-[10px] font-bold">{user?.username?.charAt(0).toUpperCase() || 'P'}</span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <TopNavbar />
 
             <main className="max-w-md mx-auto px-6 py-8">
                 {/* Demo / Welcome Message */}
                 <div className="mb-10 text-center">
-                    <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-600 text-[10px] font-black px-4 py-1.5 rounded-full border border-amber-200 uppercase tracking-widest mb-6 shadow-sm">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                        </span>
-                        Modo de Prueba Activo
-                    </div>
+
                     <h2 className="text-4xl font-black text-gray-900 tracking-tighter leading-none mb-4">
-                        Explora <span className="text-pi-purple">Acceso Total</span> en Inktoons
+                        {language === 'es' ? 'Explora' : language === 'pt' ? 'Explore' : language === 'fr' ? 'Explorez' : 'Explore'} <span className="text-pi-purple">{language === 'es' ? 'Acceso Total' : language === 'pt' ? 'Acesso Total' : language === 'fr' ? 'Accès Total' : 'Total Access'}</span> {language === 'es' ? 'en Inbox' : language === 'pt' ? 'no Inktoons' : language === 'fr' ? 'sur Inktoons' : 'on Inktoons'}
                     </h2>
                     <p className="text-gray-500 font-medium text-sm leading-relaxed max-w-[320px] mx-auto mb-6">
-                        Esta es una <span className="text-black font-bold">versión demo con todo desbloqueado</span>.
-                        ¡Prueba la plataforma, disfruta el contenido y ayúdanos con tu feedback!
+                        {t('wallet_demo_desc')}
                     </p>
                     <div className="w-12 h-1 bg-pi-purple/20 mx-auto rounded-full" />
                 </div>
@@ -284,23 +237,32 @@ export default function WalletPage() {
                     className="bg-black text-white rounded-3xl p-8 mb-8 relative overflow-hidden shadow-xl"
                 >
                     <div className="relative z-10 flex flex-col items-center text-center">
-                        <span className="text-white/60 text-sm font-bold uppercase tracking-wider mb-2">Tu Balance Actual</span>
+                        <span className="text-white/60 text-sm font-bold uppercase tracking-wider mb-2">{t('wallet_balance_title')}</span>
                         <div className="flex items-center gap-2 mb-6">
                             <span className="text-5xl font-black">{userData.balance}</span>
                             <span className="text-xl font-bold text-gray-400">Inks</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs bg-white/10 px-3 py-1.5 rounded-full border border-white/10 mb-6">
                             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                            {user ? `Conectado como @${user.username}` : "Modo Invitado"}
+                            {user ? `${t('wallet_connected_as')} @${user.username}` : t('wallet_guest_mode')}
                         </div>
 
-                        <button
-                            onClick={() => setShowExplanation(true)}
-                            className="bg-white text-black px-6 py-2.5 rounded-full font-black text-xs flex items-center gap-2 hover:bg-pi-purple hover:text-white transition-all shadow-lg active:scale-95"
-                        >
-                            <Gift size={14} />
-                            GANAR INKS GRATIS
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => setShowExplanation(true)}
+                                className="bg-white text-black px-6 py-2.5 rounded-full font-black text-xs flex items-center gap-2 hover:bg-pi-purple hover:text-white transition-all shadow-lg active:scale-95"
+                            >
+                                <Gift size={14} />
+                                {t('wallet_get_free')}
+                            </button>
+                            <button
+                                onClick={() => setShowRedeemModal(true)}
+                                className="bg-pi-purple text-white px-6 py-2.5 rounded-full font-black text-xs flex items-center gap-2 hover:bg-white hover:text-pi-purple transition-all shadow-lg active:scale-95 border border-pi-purple/20"
+                            >
+                                <Zap size={14} />
+                                {t('wallet_redeem_code')}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Background decoration */}
@@ -315,7 +277,7 @@ export default function WalletPage() {
                             <TrendingUp size={20} />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-400 font-bold uppercase">Valor de Mercado (Pi)</p>
+                            <p className="text-xs text-gray-400 font-bold uppercase">{t('wallet_market_value')}</p>
                             {currentPiValue ? (
                                 <motion.div
                                     key={currentPiValue}
@@ -326,11 +288,11 @@ export default function WalletPage() {
                                     <p className="font-bold text-sm">
                                         1 Pi ≈ ${currentPiValue.toFixed(2)} USD
                                     </p>
-                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200">En vivo</span>
+                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200">{t('wallet_live')}</span>
                                 </motion.div>
                             ) : priceError ? (
                                 <p className="text-sm font-bold text-red-500 flex items-center gap-1">
-                                    <AlertCircle size={14} /> Error al obtener precio
+                                    <AlertCircle size={14} /> {t('wallet_error_price')}
                                 </p>
                             ) : (
                                 <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
@@ -341,17 +303,18 @@ export default function WalletPage() {
                     <div className="h-[1px] bg-gray-200 w-full mb-4" />
 
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>1 Ink = $0.02 USD (Fijo)</span>
+                        <span>1 Ink = $0.02 USD ({language === 'es' ? 'Fijo' : language === 'pt' ? 'Fixo' : language === 'fr' ? 'Fixe' : 'Fixed'})</span>
                         {currentPiValue && (
                             <span>1 Pi ≈ {(currentPiValue / 0.02).toFixed(1)} Inks</span>
                         )}
                     </div>
                 </div>
 
-                {/* Early Access Pass */}
-                <h2 className="font-black text-lg mb-4 flex items-center gap-2">
+                {/* Early Access Pass - DISABLED */}
+                <h2 className="font-black text-lg mb-4 flex items-center gap-2 opacity-50">
                     <Crown className="text-amber-500 ml-1" size={24} fill="currentColor" />
                     Early Access Pass
+                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-auto uppercase font-black tracking-tighter">Mantenimiento</span>
                 </h2>
 
                 <div className="space-y-4 mb-10">
@@ -360,10 +323,10 @@ export default function WalletPage() {
                         return (
                             <motion.button
                                 key={pass.id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => handlePassPurchase(pass)}
-                                disabled={loadingPass !== null || !currentPiValue}
+                                whileHover={{ scale: 1 }}
+                                whileTap={{ scale: 1 }}
+                                onClick={() => { }} // Disabled
+                                disabled={true}
                                 className={`w-full relative ${pass.color} border-2 p-5 rounded-2xl flex flex-col items-start text-left transition-all group disabled:opacity-70 disabled:grayscale`}
                             >
                                 {pass.tag && (
@@ -384,7 +347,7 @@ export default function WalletPage() {
                                     </div>
                                     <div className="flex flex-col items-end">
                                         <span className="text-lg font-black text-gray-900">
-                                            {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">Cargando...</span>}
+                                            {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>}
                                         </span>
                                         <span className="text-[10px] font-bold text-gray-400">(${pass.priceUsd.toFixed(2)})</span>
                                     </div>
@@ -395,7 +358,7 @@ export default function WalletPage() {
                                 <div className="flex flex-wrap gap-2">
                                     {pass.features.map((feature, i) => (
                                         <span key={i} className="flex items-center gap-1 text-[10px] font-bold uppercase text-gray-500 bg-white/60 px-2 py-1 rounded-md">
-                                            {feature.includes('Descarga') ? <Download size={10} /> : <CheckCircle2 size={10} />}
+                                            {feature.includes('Descarga') || feature.includes('Download') ? <Download size={10} /> : <CheckCircle2 size={10} />}
                                             {feature}
                                         </span>
                                     ))}
@@ -412,10 +375,11 @@ export default function WalletPage() {
                     })}
                 </div>
 
-                {/* Packages */}
-                <h2 className="font-black text-lg mb-4 flex items-center gap-2">
-                    <img src="/icon.png" alt="Inks" className="w-[22px] h-[22px] object-contain ml-1" />
-                    Recargar Inks
+                {/* Packages - DISABLED */}
+                <h2 className="font-black text-lg mb-4 flex items-center gap-2 opacity-50">
+                    <img src="/icon.png" alt="Inks" className="w-[22px] h-[22px] object-contain ml-1 grayscale" />
+                    {t('wallet_recharge')}
+                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-auto uppercase font-black tracking-tighter">Mantenimiento</span>
                 </h2>
 
                 <div className="space-y-4">
@@ -424,10 +388,10 @@ export default function WalletPage() {
                         return (
                             <motion.button
                                 key={pack.id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => handlePurchase(pack)}
-                                disabled={loadingPack !== null || !currentPiValue}
+                                whileHover={{ scale: 1 }}
+                                whileTap={{ scale: 1 }}
+                                onClick={() => { }} // Disabled
+                                disabled={true}
                                 className={`w-full relative ${pack.color} border-2 p-5 rounded-2xl flex items-center justify-between text-left transition-all group disabled:opacity-70 disabled:grayscale`}
                             >
                                 {pack.tag && (
@@ -451,7 +415,7 @@ export default function WalletPage() {
 
                                 <div className="flex flex-col items-end">
                                     <span className="text-lg font-black text-gray-900">
-                                        {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">Cargando...</span>}
+                                        {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>}
                                     </span>
                                     <span className="text-[10px] font-bold text-gray-400">(${pack.priceUsd.toFixed(2)} USD)</span>
                                 </div>
@@ -470,7 +434,7 @@ export default function WalletPage() {
                 <div className="mt-8 flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
                     <ShieldCheck className="text-gray-400 flex-shrink-0" size={20} />
                     <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                        El precio en Pi se actualiza automáticamente cada minuto desde el mercado global (CoinGecko) para garantizar la mayor precisión.
+                        {t('wallet_pi_disclaimer')}
                     </p>
                 </div>
 
@@ -478,9 +442,8 @@ export default function WalletPage() {
                 <div id="missions" className="mt-12 mb-8 scroll-mt-24">
                     <h2 className="font-black text-lg flex items-center gap-2">
                         <Target className="text-red-500 ml-1" size={24} />
-                        Misiones Diarias
+                        {t('wallet_missions')}
                     </h2>
-                    {/* Global refresh removed as requested */}
                 </div>
 
                 <div className="space-y-3">
@@ -488,7 +451,7 @@ export default function WalletPage() {
                         const isCompleted = mission.progress >= mission.target;
                         const isClaimed = mission.isClaimed;
                         const remaining = Math.max(0, mission.target - mission.progress);
-                        const hasBeenSwapped = mission.swapped; // Assuming this property exists on mission type now
+                        const hasBeenSwapped = mission.swapped;
 
                         return (
                             <div
@@ -500,11 +463,10 @@ export default function WalletPage() {
                                         : mission.category === 'read' ? "bg-gradient-to-br from-cyan-50 to-blue-50 border-blue-200"
                                             : mission.category === 'social' ? "bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200"
                                                 : mission.category === 'explore' ? "bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200"
-                                                    : "bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200" // engagement
+                                                    : "bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200"
                                     }`}
                             >
                                 <div className="flex items-center gap-4">
-                                    {/* Target Icon (replaces Trophy) */}
                                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/50 border border-gray-100 flex items-center justify-center text-pi-purple/50">
                                         <Target size={16} />
                                     </div>
@@ -513,14 +475,14 @@ export default function WalletPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <h4 className={`font-bold text-sm truncate ${isClaimed ? "text-gray-400 line-through" : "text-gray-900"}`}>
-                                                {mission.title}
+                                                {t(mission.title as any)}
                                             </h4>
                                             {isCompleted && !isClaimed && (
                                                 <span className="bg-green-500 w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0" />
                                             )}
                                         </div>
                                         <div className="flex items-start justify-between gap-2">
-                                            <p className="text-xs text-gray-500 mb-2 leading-relaxed flex-1">{mission.description}</p>
+                                            <p className="text-xs text-gray-500 mb-2 leading-relaxed flex-1">{t(mission.description as any)}</p>
                                             {!isCompleted && !isClaimed && !hasBeenSwapped && (
                                                 <button
                                                     onClick={(e) => {
@@ -528,7 +490,7 @@ export default function WalletPage() {
                                                         handleReloadMission(mission.id);
                                                     }}
                                                     className="p-1.5 text-gray-400 hover:text-pi-purple hover:bg-pi-purple/5 rounded-full transition-colors flex-shrink-0"
-                                                    title="Cambiar misión (1 vez)"
+                                                    title={t('wallet_change_mission')}
                                                 >
                                                     <RefreshCw size={13} />
                                                 </button>
@@ -552,42 +514,42 @@ export default function WalletPage() {
                                             {!isClaimed && (
                                                 <span className="text-gray-400 font-bold">
                                                     {(() => {
-                                                        if (remaining <= 0) return "¡LISTO!";
+                                                        if (remaining <= 0) return t('wallet_ready');
 
                                                         const details = mission.progressDetails || {};
 
                                                         // Custom formatting for complex missions
-                                                        if (mission.id === 'pool_26') { // Superfan: 5 Likes, 5 Ratings
+                                                        if (mission.id === 'pool_26') {
                                                             const likesLeft = Math.max(0, 5 - (details.likes || 0));
                                                             const ratingsLeft = Math.max(0, 5 - (details.ratings || 0));
-                                                            if (likesLeft === 0 && ratingsLeft === 0) return "¡LISTO!";
+                                                            if (likesLeft === 0 && ratingsLeft === 0) return t('wallet_ready');
                                                             const parts = [];
-                                                            if (likesLeft > 0) parts.push(`${likesLeft} LIKES`);
-                                                            if (ratingsLeft > 0) parts.push(`${ratingsLeft} VALORACIONES`);
-                                                            return `FALTAN: ${parts.join(" Y ")}`;
+                                                            if (likesLeft > 0) parts.push(`${likesLeft} ${t('wallet_likes')}`);
+                                                            if (ratingsLeft > 0) parts.push(`${ratingsLeft} ${t('wallet_ratings')}`);
+                                                            return `${t('wallet_missing')}: ${parts.join(` ${t('wallet_and')} `)}`;
                                                         }
 
-                                                        if (mission.id === 'pool_27') { // Crítico Elite: 5 Comments, 3 Ratings
+                                                        if (mission.id === 'pool_27') {
                                                             const commentsLeft = Math.max(0, 5 - (details.comments || 0));
                                                             const ratingsLeft = Math.max(0, 3 - (details.ratings || 0));
-                                                            if (commentsLeft === 0 && ratingsLeft === 0) return "¡LISTO!";
+                                                            if (commentsLeft === 0 && ratingsLeft === 0) return t('wallet_ready');
                                                             const parts = [];
-                                                            if (commentsLeft > 0) parts.push(`${commentsLeft} COMENTARIOS`);
-                                                            if (ratingsLeft > 0) parts.push(`${ratingsLeft} VALORACIONES`);
-                                                            return `FALTAN: ${parts.join(" Y ")}`;
+                                                            if (commentsLeft > 0) parts.push(`${commentsLeft} ${t('wallet_comments')}`);
+                                                            if (ratingsLeft > 0) parts.push(`${ratingsLeft} ${t('wallet_ratings')}`);
+                                                            return `${t('wallet_missing')}: ${parts.join(` ${t('wallet_and')} `)}`;
                                                         }
 
-                                                        if (mission.id === 'pool_22') { // Influencer: 3 Follows, 1 Comment
+                                                        if (mission.id === 'pool_22') {
                                                             const followsLeft = Math.max(0, 3 - (details.follows || 0));
                                                             const commentsLeft = Math.max(0, 1 - (details.comments || 0));
-                                                            if (followsLeft === 0 && commentsLeft === 0) return "¡LISTO!";
+                                                            if (followsLeft === 0 && commentsLeft === 0) return t('wallet_ready');
                                                             const parts = [];
-                                                            if (followsLeft > 0) parts.push(`${followsLeft} SEGUIR`);
-                                                            if (commentsLeft > 0) parts.push(`${commentsLeft} COMENTARIO`);
-                                                            return `FALTAN: ${parts.join(" Y ")}`;
+                                                            if (followsLeft > 0) parts.push(`${followsLeft} ${t('wallet_follows')}`);
+                                                            if (commentsLeft > 0) parts.push(`${commentsLeft} ${t('wallet_comment')}`);
+                                                            return `${t('wallet_missing')}: ${parts.join(` ${t('wallet_and')} `)}`;
                                                         }
 
-                                                        return `FALTAN ${remaining}`;
+                                                        return `${t('wallet_missing')} ${remaining}`;
                                                     })()}
                                                 </span>
                                             )}
@@ -652,10 +614,9 @@ export default function WalletPage() {
                                         </button>
                                     </div>
 
-                                    <h2 className="text-3xl font-black mb-4">¿Qué son los Inks?</h2>
+                                    <h2 className="text-3xl font-black mb-4">{t('wallet_inks_info_title')}</h2>
                                     <p className="text-gray-500 font-medium mb-8 leading-relaxed">
-                                        Los Inks son la moneda virtual oficial de <span className="text-pi-purple font-black">Inktoons</span>.
-                                        Han sido creados para permitir que los lectores valoren y apoyen directamente a los artistas del ecosistema Pi.
+                                        {t('wallet_inks_info_desc')} {language === 'es' ? 'Han sido creados para permitir que los lectores valoren y apoyen directamente a los artistas del ecosistema Pi.' : 'They have been created to allow readers to directly value and support artists in the Pi ecosystem.'}
                                     </p>
 
                                     <div className="space-y-6">
@@ -664,19 +625,11 @@ export default function WalletPage() {
                                                 <Gift size={20} />
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-gray-900 mb-1">¿Cómo conseguirlos GRATIS?</h4>
+                                                <h4 className="font-bold text-gray-900 mb-1">{t('wallet_inks_info_get_title')}</h4>
                                                 <ul className="text-sm text-gray-500 space-y-2">
                                                     <li className="flex items-center gap-2">
                                                         <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                                                        <span>Bonus de Bienvenida: 50 Inks gratis al empezar.</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                                                        <span>Recompensas Diarias: Entra cada día para reclamar tu bonus.</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                                                        <span>Eventos de la Comunidad: Participa en retos y sorteos.</span>
+                                                        <span>{language === 'es' ? 'Bonus de Bienvenida: 50 Inks gratis al empezar + Tareas diarias que se reinician cada 24 horas.' : 'Welcome Bonus: 50 free Inks to start + Daily tasks that reset every 24 hours.'}</span>
                                                     </li>
                                                 </ul>
                                             </div>
@@ -687,19 +640,11 @@ export default function WalletPage() {
                                                 <Star size={20} fill="currentColor" />
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-gray-900 mb-1">¿Para qué sirven?</h4>
+                                                <h4 className="font-bold text-gray-900 mb-1">{t('wallet_inks_info_use_title')}</h4>
                                                 <ul className="text-sm text-gray-500 space-y-2">
                                                     <li className="flex items-center gap-2">
                                                         <div className="w-1.5 h-1.5 bg-pi-purple/30 rounded-full" />
-                                                        <span>Desbloquear Capítulos: Accede a episodios exclusivos o Early Access.</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 bg-pi-purple/30 rounded-full" />
-                                                        <span>Apoyo a Autores: Envía Inks a tus creadores favoritos.</span>
-                                                    </li>
-                                                    <li className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 bg-pi-purple/30 rounded-full" />
-                                                        <span>Personalización: Próximamente insignias y marcos exclusivos.</span>
+                                                        <span>{language === 'es' ? 'Acceso Total: Desbloquea episodios exclusivos, descargas offline y marco personalizado de perfil.' : 'Total Access: Unlock exclusive episodes, offline downloads and personalized profile frame.'}</span>
                                                     </li>
                                                 </ul>
                                             </div>
@@ -710,13 +655,86 @@ export default function WalletPage() {
                                         onClick={() => setShowExplanation(false)}
                                         className="w-full mt-10 py-5 bg-black text-white rounded-3xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition-all"
                                     >
-                                        ENTENDIDO, ¡GRACIAS!
+                                        {t('wallet_inks_info_btn')}
                                     </button>
                                 </motion.div>
                             </>
                         )}
                 </AnimatePresence>
+
+                {/* Redeem Code Modal */}
+                <AnimatePresence>
+                    {showRedeemModal && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowRedeemModal(false)}
+                                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+                            />
+                            <motion.div
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] p-8 z-[110] shadow-2xl"
+                            >
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="w-12 h-12 bg-pi-purple/10 rounded-2xl flex items-center justify-center text-pi-purple">
+                                        <Zap size={24} />
+                                    </div>
+                                    <button onClick={() => setShowRedeemModal(false)} className="p-2 bg-gray-100 rounded-full text-gray-400">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <h2 className="text-3xl font-black mb-4">{t('wallet_redeem_code')}</h2>
+                                <p className="text-gray-500 font-medium mb-6 leading-relaxed">
+                                    {language === 'es' ? 'Introduce tu código promocional para activar beneficios exclusivos.' : 'Enter your promo code to activate exclusive benefits.'}
+                                </p>
+
+                                <div className="mb-8">
+                                    <input
+                                        type="text"
+                                        value={redeemCode}
+                                        onChange={(e) => setRedeemCode(e.target.value)}
+                                        placeholder={t('wallet_code_placeholder')}
+                                        className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-6 py-4 font-bold text-lg focus:border-pi-purple focus:bg-white outline-none transition-all uppercase"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        const code = redeemCode.trim().toUpperCase();
+                                        if (code === "FREE7DAY" || code === "FREE7DAYS") {
+                                            setRedeeming(true);
+                                            setTimeout(() => {
+                                                // Create a 7-day subscription (approx 0.23 months)
+                                                // We can just use the setSubscription and pass 0.232 approx, but 
+                                                // better if we set it directly in useUserData if possible.
+                                                // Since setSubscription takes months, 7 days is 7/30.44 = 0.23 months.
+                                                setSubscription('7d', 7 / 30.44);
+                                                setRedeeming(false);
+                                                setShowRedeemModal(false);
+                                                setRedeemCode("");
+                                                alert(t('wallet_code_success'));
+                                            }, 1000);
+                                        } else {
+                                            alert(t('wallet_code_invalid'));
+                                        }
+                                    }}
+                                    disabled={!redeemCode || redeeming}
+                                    className="w-full py-5 bg-black text-white rounded-3xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition-all disabled:opacity-50"
+                                >
+                                    {redeeming ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto" /> : t('wallet_redeem')}
+                                </button>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
             </main >
+
+            <BottomNavbar />
         </div >
     );
 }
