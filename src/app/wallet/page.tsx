@@ -475,7 +475,7 @@ export default function WalletPage() {
                 </div>
 
                 {/* Daily Missions Section */}
-                <div className="mt-12 mb-8">
+                <div id="missions" className="mt-12 mb-8 scroll-mt-24">
                     <h2 className="font-black text-lg flex items-center gap-2">
                         <Target className="text-red-500 ml-1" size={24} />
                         Misiones Diarias

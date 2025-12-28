@@ -21,6 +21,18 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
     const handleNotificationClick = (notif: Notification) => {
         markNotificationRead(notif.id);
         if (notif.link) {
+            // Safe redirection with scroll support for hashes
+            if (notif.link.includes("#") && typeof window !== 'undefined') {
+                const [path, hash] = notif.link.split("#");
+                if (window.location.pathname === path) {
+                    const element = document.getElementById(hash);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                        onClose();
+                        return;
+                    }
+                }
+            }
             router.push(notif.link);
             onClose();
         }

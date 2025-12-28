@@ -8,6 +8,7 @@ export interface NewsItem {
     imageUrl: string;
     rating?: number;
     votes?: number;
+    views?: number;
 }
 
 export const mockNews: NewsItem[] = [
@@ -19,6 +20,8 @@ export const mockNews: NewsItem[] = [
         date: "24 Dic 2025",
         author: "CyberWriter",
         imageUrl: "https://images.unsplash.com/photo-1546776310-eef45dd6d63c?auto=format&fit=crop&w=400&q=80",
+        votes: 4500,
+        views: 125400
     },
     {
         id: "b1",
@@ -28,6 +31,8 @@ export const mockNews: NewsItem[] = [
         date: "23 Dic 2025",
         author: "NeoNoir",
         imageUrl: "https://images.unsplash.com/photo-1514539079130-25950c84af65?auto=format&fit=crop&w=400&q=80",
+        votes: 3800,
+        views: 98200
     },
     {
         id: "c1",
@@ -37,6 +42,8 @@ export const mockNews: NewsItem[] = [
         date: "22 Dic 2025",
         author: "ShadowHunter",
         imageUrl: "https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=400&q=80",
+        votes: 3200,
+        views: 84500
     },
     {
         id: "d1",
@@ -46,6 +53,8 @@ export const mockNews: NewsItem[] = [
         date: "21 Dic 2025",
         author: "InkMaster",
         imageUrl: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=400&q=80",
+        votes: 2900,
+        views: 76000
     },
     {
         id: "e1",

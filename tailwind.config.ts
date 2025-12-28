@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-    darkMode: "class",
     content: [
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -15,6 +14,19 @@ const config: Config = {
             },
             animation: {
                 'spin-slow': 'spin 3s linear infinite',
+                'gradient-xy': 'gradient-xy 3s ease infinite',
+            },
+            keyframes: {
+                'gradient-xy': {
+                    '0%, 100%': {
+                        'background-size': '400% 400%',
+                        'background-position': 'left center'
+                    },
+                    '50%': {
+                        'background-size': '400% 400%',
+                        'background-position': 'right center'
+                    }
+                }
             }
         },
     },

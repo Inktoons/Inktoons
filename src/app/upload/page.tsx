@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
 import { usePi } from "@/components/PiNetworkProvider";
+import { useUserData } from "@/context/UserDataContext";
 
 interface CustomPromptProps {
     isOpen: boolean;
@@ -98,6 +99,7 @@ function UploadPageContent() {
 
     const { webtoons, addWebtoon, addChapter, updateChapter, uploadImage } = useContent();
     const { user } = usePi();
+    const { userData } = useUserData();
 
     const isEditMode = !!chapterIdFromQuery;
 
@@ -251,7 +253,15 @@ function UploadPageContent() {
 
     const handleSubmitWebtoon = async () => {
         if (!title || !coverImage) {
-            alert("Rellena título y portada.");
+            alert("Por favor, rellena el título y selecciona una portada.");
+            return;
+        }
+        if (!description || description.trim().length < 10) {
+            alert("La sinopsis es obligatoria (mínimo 10 caracteres).");
+            return;
+        }
+        if (selectedGenres.length === 0) {
+            alert("Debes seleccionar al menos un género.");
             return;
         }
         setIsSubmitting(true);
@@ -289,7 +299,7 @@ function UploadPageContent() {
             setSelectedWebtoonId(id);
             setIsSubmitting(false);
             setIsSuccess(true);
-            setStatusMessage("¡Publicado!");
+            setStatusMessage("Inktoon subido");
             setTimeout(() => { setIsSuccess(false); setActiveTab(2); }, 2000);
         } catch (error: any) {
             console.error("Error submitting webtoon:", error);
@@ -418,9 +428,10 @@ function UploadPageContent() {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                         {/* Image Uploads */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div onClick={() => coverInputRef.current?.click()} className="aspect-[3/4] rounded-2xl bg-white border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden">
-                                {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">Portada</span></>}
+                            <div onClick={() => coverInputRef.current?.click()} className="aspect-[3/4] rounded-2xl bg-white border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden relative">
+                                {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">Portada*</span></>}
                                 <input ref={coverInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} />
+                                {!coverImage && <span className="absolute top-2 right-2 text-red-500 font-bold">*</span>}
                             </div>
                             <div onClick={() => bannerInputRef.current?.click()} className="aspect-[3/4] rounded-2xl bg-white border-2 border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden">
                                 {bannerImage ? <img src={bannerImage} className="w-full h-full object-cover" /> : <><ImageIcon className="text-gray-300" /><span className="text-[10px] font-black mt-2 text-gray-400 uppercase">Banner</span></>}
@@ -431,9 +442,9 @@ function UploadPageContent() {
                         {/* Text Fields */}
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Título del Manga*</label>
-                                <div onClick={() => openPrompt("Manga", "title", title)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-lg flex justify-between items-center active:bg-gray-50">
-                                    <span className={title ? "text-black font-bold" : "text-gray-300"}>{title || "Nombre de tu manga..."}</span>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Título del Inktoon <span className="text-red-500">*</span></label>
+                                <div onClick={() => openPrompt("Inktoon", "title", title)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm text-lg flex justify-between items-center active:bg-gray-50">
+                                    <span className={title ? "text-black font-bold" : "text-gray-300"}>{title || "Nombre de tu Inktoon..."}</span>
                                     <Edit3 size={18} className="text-pi-purple/40" />
                                 </div>
                             </div>
@@ -441,8 +452,12 @@ function UploadPageContent() {
                                 <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Autor</label>
                                 <div className="w-full p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex justify-between items-center group transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-pi-purple/10 flex items-center justify-center text-pi-purple font-black text-xs border border-pi-purple/5">
-                                            {user?.username?.charAt(0).toUpperCase() || "?"}
+                                        <div className="w-8 h-8 rounded-full bg-pi-purple flex items-center justify-center text-white font-black text-xs border-2 border-white shadow-sm overflow-hidden">
+                                            {userData.profileImage ? (
+                                                <img src={userData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span>{user?.username?.charAt(0).toUpperCase() || "?"}</span>
+                                            )}
                                         </div>
                                         <span className="text-black font-extrabold text-sm">{user?.username || "Conectando..."}</span>
                                     </div>
@@ -470,7 +485,7 @@ function UploadPageContent() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Sinopsis / Descripción</label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Sinopsis / Descripción <span className="text-red-500">*</span></label>
                                 <div onClick={() => openPrompt("Sinopsis", "description", description)} className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:bg-gray-50 min-h-[100px]">
                                     <span className={description ? "text-black font-bold text-sm leading-relaxed" : "text-gray-300 text-sm"}>
                                         {description || "Escribe una breve descripción de tu historia..."}
@@ -523,7 +538,7 @@ function UploadPageContent() {
 
                             {/* Géneros Grid */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Géneros</label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Géneros <span className="text-red-500">* (Selecciona al menos 1)</span></label>
                                 <div className="flex flex-wrap gap-2">
                                     {genres.map(genre => (
                                         <button
@@ -554,7 +569,7 @@ function UploadPageContent() {
                         >
                             <div className="flex items-center gap-3">
                                 {isSubmitting ? <Loader2 className="animate-spin" /> : <Upload />}
-                                {isSubmitting ? "PUBLICANDO..." : isSuccess ? "MUNDO CREADO" : "PUBLICAR MANGA"}
+                                {isSubmitting ? "SUBIENDO INKTOON..." : isSuccess ? "INKTOON SUBIDO" : "PUBLICAR INKTOON"}
                             </div>
                             {isSubmitting && statusMessage && (
                                 <span className="text-[10px] opacity-70 animate-pulse">{statusMessage}</span>

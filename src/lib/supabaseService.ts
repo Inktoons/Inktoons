@@ -26,6 +26,7 @@ export interface Webtoon {
     imageUrl: string;
     rating?: number;
     votes?: number;
+    views?: number;
     status: string;
     genres: string[];
     artist?: string;

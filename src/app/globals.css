@@ -18,11 +18,7 @@
   --color-pi-gold: var(--pi-gold);
 }
 
-.dark {
-  --background: #0a0a0a;
-  --foreground: #ffffff;
-  --card-bg: #171717;
-}
+/* Dark mode disabled by user request */
 
 body {
   background: var(--background);

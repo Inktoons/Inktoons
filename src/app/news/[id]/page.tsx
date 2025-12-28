@@ -32,7 +32,8 @@ import {
     Crown,
     Home as HomeIcon,
     Search,
-    User
+    User,
+    Upload
 } from "lucide-react";
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
@@ -439,53 +440,70 @@ export default function MangaDetailPage() {
                 <div className="px-5 pt-6 pb-20 min-h-[300px]">
                     {activeTab === "DETALLES" && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                            {/* Alternativo */}
-                            <div className="mb-6">
-                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-2">Alternativo(s)</h3>
-                                <p className="text-sm text-gray-600 font-medium leading-relaxed">
-                                    {alternativeTitle}
-                                </p>
-                            </div>
-
-                            {/* Introduccion */}
+                            {/* Introducción */}
                             <div className="mb-8">
-                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-2">Introducción</h3>
-                                <p className="text-gray-700 leading-relaxed text-sm">
-                                    {news.excerpt}
-                                    <br /><br />
-                                    Dime, ¿qué te ha estado molestando? Puedo solucionar todos tus problemas... si te parecen bien mis métodos de tratamiento poco convencionales. Únete a esta aventura en el ecosistema Pi donde la realidad supera a la ficción.
-                                </p>
+                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 px-1">Introducción</h3>
+                                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                                    <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
+                                        {news.excerpt}
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Publicador */}
+                            {/* Publicador Section */}
                             <div className="mb-10">
-                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3">Publicador</h3>
-                                <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl">
-                                    <div className="w-10 h-10 rounded-full bg-pi-purple flex items-center justify-center text-white font-black text-sm shadow-sm">
-                                        {news.author[0]}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-sm">{news.author}</p>
-                                        <p className="text-xs text-gray-400">Verificado Oficial</p>
+                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 px-1">Publicador</h3>
+                                <div className="bg-white rounded-3xl border border-slate-100 p-5 flex items-center justify-between shadow-sm group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="relative">
+                                            {/* Safe logic for frame */}
+                                            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-black shadow-lg border-2 overflow-hidden relative ${(user && news && user.username === news.author && userData?.isFounder)
+                                                    ? "border-transparent bg-gradient-to-tr from-pi-purple via-amber-500 to-indigo-600 p-[2px] animate-gradient-xy"
+                                                    : (user && news && user.username === news.author && userData?.subscription)
+                                                        ? "border-amber-400"
+                                                        : "border-white"
+                                                }`}>
+                                                <div className="w-full h-full rounded-full overflow-hidden bg-pi-purple flex items-center justify-center">
+                                                    {(user && news && user.username === news.author && userData?.profileImage) ? (
+                                                        <img src={userData.profileImage} alt="Author" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span>{news?.author?.charAt(0).toUpperCase() || "A"}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {(user && news && user.username === news.author && userData?.subscription) && (
+                                                <div className="absolute -bottom-1 -right-1 bg-pi-gold text-[8px] font-black px-1 rounded border border-white shadow-sm">
+                                                    VIP
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <p className="font-black text-slate-900">{news?.author || "Autor"}</p>
+                                                {(user && news && user.username === news.author && userData?.isFounder) && (
+                                                    <Crown size={12} className="text-pi-gold fill-pi-gold" />
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] bg-slate-100 text-slate-400 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Creador Oficial</span>
+                                            </div>
+                                        </div>
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            toggleFollowAuthor(news.author);
-                                            if (!isFollowingAuth) trackAction('FOLLOW_AUTHOR', { author: news.author });
-                                        }}
-                                        className={`ml-auto text-xs font-black border px-3 py-1 rounded-full transition-colors ${isFollowingAuth
-                                            ? "bg-pi-purple text-white border-pi-purple"
-                                            : "text-pi-purple border-pi-purple hover:bg-pi-purple hover:text-white"
+                                        onClick={() => news && toggleFollowAuthor(news.author)}
+                                        className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isFollowingAuth
+                                                ? "bg-slate-100 text-slate-400"
+                                                : "bg-pi-purple text-white shadow-md shadow-pi-purple/20 active:scale-95"
                                             }`}
                                     >
-                                        {isFollowingAuth ? "SIGUIENDO" : "+ SEGUIR"}
+                                        {isFollowingAuth ? "Siguiendo" : "Seguir"}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Recommendations */}
                             <div>
-                                <h3 className="text-lg font-black mb-4">Te puede interesar</h3>
+                                <h3 className="text-gray-400 text-xs font-bold uppercase mb-4 px-1">Te puede interesar</h3>
                                 <div className="grid grid-cols-3 gap-3">
                                     {mockNews.filter(n => n.id !== id).map(item => (
                                         <div
@@ -684,7 +702,7 @@ export default function MangaDetailPage() {
                                             <p className="text-sm text-gray-800 leading-relaxed mb-2 whitespace-pre-wrap">{comment.content}</p>
 
                                             {comment.image && (
-                                                <div className="relative w-48 h-48 rounded-lg overflow-hidden mb-2 bg-gray-100 border border-gray-100">
+                                                <div className="relative w-48 h-48 rounded-lg overflow-hidden mb-4 border border-gray-100">
                                                     <Image
                                                         src={comment.image}
                                                         alt="Comment attachment"
@@ -886,7 +904,7 @@ export default function MangaDetailPage() {
             </main>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-8 py-4 flex items-center justify-between z-50">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-6 py-4 flex items-center justify-between z-50">
                 <button onClick={() => router.push("/")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <HomeIcon size={22} />
                     <span className="text-[10px] font-bold">Inicio</span>
@@ -894,6 +912,10 @@ export default function MangaDetailPage() {
                 <button onClick={() => router.push("/explore")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <Search size={22} />
                     <span className="text-[10px] font-bold">Explorar</span>
+                </button>
+                <button onClick={() => router.push("/upload")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <Upload size={22} />
+                    <span className="text-[10px] font-bold">Subir</span>
                 </button>
                 <button onClick={() => router.push("/library")} className="text-gray-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
                     <BookOpen size={22} />

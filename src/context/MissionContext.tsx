@@ -168,7 +168,8 @@ export function MissionProvider({ children }: { children: React.ReactNode }) {
                                 type: 'MISSION',
                                 title: '¡Misión Completada!',
                                 message: `Has completado "${mission.title}". ¡Ve a reclamar tu recompensa!`,
-                                icon: '🎯'
+                                icon: '🎯',
+                                link: '/wallet#missions'
                             });
                         }
                         return { ...mission, progress: newProgress, progressDetails: newDetails };

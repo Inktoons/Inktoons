@@ -14,7 +14,8 @@ import {
     Search,
     User,
     Clock,
-    Play
+    Play,
+    Upload
 } from "lucide-react";
 
 export default function LibraryPage() {
@@ -78,9 +79,9 @@ export default function LibraryPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-gray-100 flex flex-col transition-colors duration-300">
+        <div className="min-h-screen bg-white text-slate-900 flex flex-col transition-colors duration-300">
             {/* Header style matching reference */}
-            <header className="px-6 py-4 flex items-center justify-between border-b border-gray-50 dark:border-white/10 bg-white dark:bg-[#0a0a0a]">
+            <header className="px-6 py-4 flex items-center justify-between border-b border-gray-50 bg-white">
                 <div
                     className="text-2xl font-black tracking-tighter text-pi-purple cursor-pointer flex items-center gap-2"
                     onClick={() => router.push("/")}
@@ -88,18 +89,18 @@ export default function LibraryPage() {
                     <span>Inktoons</span>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button className="p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"><Bell size={24} /></button>
-                    <button className="p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"><Menu size={24} /></button>
+                    <button className="p-2 text-gray-400 hover:text-black transition-colors"><Bell size={24} /></button>
+                    <button className="p-2 text-gray-400 hover:text-black transition-colors"><Menu size={24} /></button>
                 </div>
             </header>
 
             <main className="flex-1 max-w-[1200px] mx-auto w-full px-6 py-8">
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-2xl font-black flex items-center gap-3 text-slate-900 dark:text-white">
+                    <h1 className="text-2xl font-black flex items-center gap-3 text-slate-900">
                         <BookOpen className="text-pi-purple" size={24} />
                         Tu Biblioteca
                     </h1>
-                    <span className="text-xs font-black text-gray-400 bg-gray-100 dark:bg-white/10 px-3 py-1 rounded-full">
+                    <span className="text-xs font-black text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
                         {readingNow.length} {readingNow.length === 1 ? 'HISTORIA' : 'HISTORIAS'}
                     </span>
                 </div>
@@ -110,7 +111,7 @@ export default function LibraryPage() {
                             <motion.div
                                 key={item.id}
                                 whileHover={{ y: -5 }}
-                                className="bg-white dark:bg-[#111] rounded-2xl border border-gray-100 dark:border-white/5 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                                className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group"
                                 onClick={() => router.push(`/news/${item.id}`)}
                             >
                                 <div className="flex h-44">
@@ -134,17 +135,17 @@ export default function LibraryPage() {
                                                     {item.category}
                                                 </span>
                                             </div>
-                                            <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2 text-slate-900 dark:text-white group-hover:text-pi-purple transition-colors">
+                                            <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2 text-slate-900 group-hover:text-pi-purple transition-colors">
                                                 {item.title}
                                             </h3>
                                             <div className="flex flex-col gap-1.5">
-                                                <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 font-bold">
+                                                <div className="flex items-center gap-2 text-[11px] text-gray-500 font-bold">
                                                     <Clock size={12} className="text-gray-400" />
                                                     <span className="line-clamp-1">{item.lastChapterTitle}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-tight">
                                                     <span>{item.readCount} leídos</span>
-                                                    <span className="w-1 h-1 bg-gray-100 dark:bg-white/20 rounded-full" />
+                                                    <span className="w-1 h-1 bg-gray-100 rounded-full" />
                                                     <span>{item.remainingCount} por leer</span>
                                                 </div>
                                             </div>
@@ -155,7 +156,7 @@ export default function LibraryPage() {
                                                 <span>PROGRESO</span>
                                                 <span className="text-pi-purple">{item.progress}%</span>
                                             </div>
-                                            <div className="w-full h-2 bg-gray-50 dark:bg-white/10 rounded-full overflow-hidden">
+                                            <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden">
                                                 <motion.div
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${item.progress}%` }}
@@ -171,16 +172,16 @@ export default function LibraryPage() {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-24 h-24 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-300 dark:text-gray-600 mb-6">
+                        <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 mb-6">
                             <BookOpen size={48} />
                         </div>
-                        <h2 className="text-xl font-black mb-2 text-slate-900 dark:text-white">Tu Biblioteca está vacía</h2>
+                        <h2 className="text-xl font-black mb-2 text-slate-900">Tu Biblioteca está vacía</h2>
                         <p className="text-gray-400 text-sm max-w-xs mb-8">
                             Empieza a leer tus historias favoritas y aparecerán aquí automáticamente.
                         </p>
                         <button
                             onClick={() => router.push("/")}
-                            className="bg-black dark:bg-white text-white dark:text-black px-10 py-3 rounded-full font-black hover:scale-105 transition-transform"
+                            className="bg-black text-white px-10 py-3 rounded-full font-black hover:scale-105 transition-transform"
                         >
                             Explorar Contenido
                         </button>
@@ -191,21 +192,25 @@ export default function LibraryPage() {
             </main>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-slate-100 dark:border-white/10 px-8 py-4 flex items-center justify-between z-50 transition-colors duration-300">
-                <button onClick={() => router.push("/")} className="text-slate-400 dark:text-slate-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <Home size={24} />
+            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-6 py-3 flex items-center justify-between z-50 transition-colors duration-300">
+                <button onClick={() => router.push("/")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <Home size={22} />
                     <span className="text-[10px] font-bold">Inicio</span>
                 </button>
-                <button onClick={() => router.push("/explore")} className="text-slate-400 dark:text-slate-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <Search size={24} />
+                <button onClick={() => router.push("/explore")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <Search size={22} />
                     <span className="text-[10px] font-bold">Explorar</span>
                 </button>
+                <button onClick={() => router.push("/upload")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <Upload size={22} />
+                    <span className="text-[10px] font-bold">Subir</span>
+                </button>
                 <button className="text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <BookOpen size={24} />
+                    <BookOpen size={22} />
                     <span className="text-[10px] font-bold">Biblioteca</span>
                 </button>
-                <button onClick={() => router.push("/profile")} className="text-slate-400 dark:text-slate-500 hover:text-pi-purple dark:hover:text-pi-purple transition-all flex flex-col items-center gap-1">
-                    <User size={24} />
+                <button onClick={() => router.push("/profile")} className="text-slate-400 hover:text-pi-purple transition-all flex flex-col items-center gap-1">
+                    <User size={22} />
                     <span className="text-[10px] font-bold">Perfil</span>
                 </button>
             </nav>

@@ -13,6 +13,7 @@ interface PiContextType {
     loading: boolean;
     authenticate: () => Promise<void>;
     createPayment: (amount: number, memo: string, metadata: any, onSuccess?: () => void) => Promise<void>;
+    setMockUser: (user: PiUser | null) => void;
 }
 
 const PiContext = createContext<PiContextType | undefined>(undefined);
@@ -48,6 +49,16 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
     useEffect(() => {
         const init = async () => {
+            // Soporte para Mock User en desarrollo
+            if (process.env.NODE_ENV === 'development') {
+                const mockUser = localStorage.getItem("dev_mock_user");
+                if (mockUser) {
+                    try {
+                        setUser(JSON.parse(mockUser));
+                    } catch (e) { }
+                }
+            }
+
             if (window.Pi && !initialized.current) {
                 try {
                     // Inicializamos normal para permitir el LOGIN
@@ -76,8 +87,20 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         }
     };
 
+    const setMockUser = useCallback((mockUser: PiUser | null) => {
+        if (process.env.NODE_ENV !== 'development') return;
+
+        if (mockUser) {
+            setUser(mockUser);
+            localStorage.setItem("dev_mock_user", JSON.stringify(mockUser));
+        } else {
+            setUser(null);
+            localStorage.removeItem("dev_mock_user");
+        }
+    }, []);
+
     return (
-        <PiContext.Provider value={{ user, loading, authenticate, createPayment }}>
+        <PiContext.Provider value={{ user, loading, authenticate, createPayment, setMockUser }}>
             {children}
         </PiContext.Provider>
     );

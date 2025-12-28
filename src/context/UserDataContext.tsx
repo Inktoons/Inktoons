@@ -32,12 +32,21 @@ interface UserData {
         expiresAt: number;
     };
     likedChapters?: string[];
+    isFounder?: boolean;
 }
 
+export interface Toast {
+    title: string;
+    message: string;
+    icon?: string;
+    link?: string;
+}
 
 interface UserDataContextType {
     userData: UserData;
     loading: boolean;
+    toast: Toast | null;
+    clearToast: () => void;
     toggleFavorite: (id: string) => void;
     addToHistory: (id: string) => void;
     toggleFollowAuthor: (authorName: string) => void;
@@ -59,6 +68,7 @@ interface UserDataContextType {
     updateWalletAddress: (address: string) => void;
     toggleLikeChapter: (webtoonId: string, chapterId: string) => void;
     isChapterLiked: (webtoonId: string, chapterId: string) => boolean;
+    cancelSubscription: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -66,6 +76,7 @@ const UserDataContext = createContext<UserDataContextType | undefined>(undefined
 export function UserDataProvider({ children }: { children: ReactNode }) {
     const { user } = usePi();
     const [loading, setLoading] = useState(true);
+    const [toast, setToast] = useState<Toast | null>(null);
     const [userData, setUserData] = useState<UserData>({
         favorites: [],
         history: [],
@@ -210,7 +221,16 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
                 notifications: [newNotif, ...(prev.notifications || [])].slice(0, 50)
             };
         });
+        // Also show toast
+        setToast({
+            title: notif.title,
+            message: notif.message,
+            icon: notif.icon,
+            link: notif.link
+        });
     }, []);
+
+    const clearToast = useCallback(() => setToast(null), []);
 
     const markNotificationRead = useCallback((id: string) => {
         setUserData(prev => ({
@@ -233,6 +253,13 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    const cancelSubscription = useCallback(() => {
+        setUserData(prev => {
+            const { subscription, isFounder, ...rest } = prev;
+            return { ...rest, isFounder: false };
+        });
+    }, []);
+
     const isFavorite = useCallback((id: string) => userData.favorites.includes(id), [userData.favorites]);
     const isInHistory = useCallback((id: string) => userData.history.includes(id), [userData.history]);
     const isFollowingAuthor = useCallback((authorName: string) => userData.following.includes(authorName), [userData.following]);
@@ -242,8 +269,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     return (
         <UserDataContext.Provider value={{
-            userData, loading, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress,
-            addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress, toggleLikeChapter, isChapterLiked
+            userData, loading, toast, clearToast, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress,
+            addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress, toggleLikeChapter, isChapterLiked, cancelSubscription
         }}>
             {children}
         </UserDataContext.Provider>

@@ -12,27 +12,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setTheme] = useState<Theme>("light");
-
-    useEffect(() => {
-        const stored = localStorage.getItem("inktoons_theme") as Theme;
-        if (stored) {
-            setTheme(stored);
-        }
-    }, []);
+    // Forzamos el tema a light siempre para evitar conflictos con el modo oscuro
+    const theme = "light";
 
     useEffect(() => {
         const root = window.document.documentElement;
-        if (theme === "dark") {
-            root.classList.add("dark");
-        } else {
-            root.classList.remove("dark");
-        }
-        localStorage.setItem("inktoons_theme", theme);
-    }, [theme]);
+        root.classList.remove("dark");
+        localStorage.setItem("inktoons_theme", "light");
+    }, []);
 
     const toggleTheme = () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
+        // Desactivado por petición del usuario
+        console.log("Modo oscuro desactivado.");
     };
 
     return (
