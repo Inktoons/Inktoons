@@ -104,18 +104,6 @@ export default function WalletPage() {
             color: 'bg-gradient-to-br from-amber-50 to-orange-50 border-orange-200',
             iconColor: 'text-amber-500'
         },
-        {
-            id: 'pass_test',
-            duration: language === 'es' ? '24 Horas' : '24 Hours',
-            durationTime: 0.033, // ~1 day
-            priceUsd: 0.00, // Not used
-            pricePi: 0.01,
-            label: language === 'es' ? 'Pase de Prueba' : 'Test Pass',
-            features: [language === 'es' ? 'Acceso de prueba' : 'Test access', language === 'es' ? 'Válido por 1 día' : 'Valid for 1 day'],
-            tag: 'TEST',
-            color: 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200',
-            iconColor: 'text-emerald-500'
-        }
     ];
 
     const packs = [
@@ -230,17 +218,7 @@ export default function WalletPage() {
             <TopNavbar />
 
             <main className="max-w-md mx-auto px-6 py-8">
-                {/* Demo / Welcome Message */}
-                <div className="mb-10 text-center">
 
-                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter leading-none mb-4">
-                        {language === 'es' ? 'Explora' : language === 'pt' ? 'Explore' : language === 'fr' ? 'Explorez' : 'Explore'} <span className="text-pi-purple">{language === 'es' ? 'Acceso Total' : language === 'pt' ? 'Acesso Total' : language === 'fr' ? 'Accès Total' : 'Total Access'}</span> {language === 'es' ? 'en Inbox' : language === 'pt' ? 'no Inktoons' : language === 'fr' ? 'sur Inktoons' : 'on Inktoons'}
-                    </h2>
-                    <p className="text-gray-500 font-medium text-sm leading-relaxed max-w-[320px] mx-auto mb-6">
-                        {t('wallet_demo_desc')}
-                    </p>
-                    <div className="w-12 h-1 bg-pi-purple/20 mx-auto rounded-full" />
-                </div>
 
                 {/* Balance Card */}
                 <motion.div
@@ -719,15 +697,21 @@ export default function WalletPage() {
                                         if (code === "FREE7DAY" || code === "FREE7DAYS") {
                                             setRedeeming(true);
                                             setTimeout(() => {
-                                                // Create a 7-day subscription (approx 0.23 months)
-                                                // We can just use the setSubscription and pass 0.232 approx, but 
-                                                // better if we set it directly in useUserData if possible.
-                                                // Since setSubscription takes months, 7 days is 7/30.44 = 0.23 months.
                                                 setSubscription('7d', 7 / 30.44);
                                                 setRedeeming(false);
                                                 setShowRedeemModal(false);
                                                 setRedeemCode("");
                                                 alert(t('wallet_code_success'));
+                                            }, 1000);
+                                        } else if (code === "FUNDADORINK") {
+                                            setRedeeming(true);
+                                            setTimeout(() => {
+                                                // 1 Year subscription
+                                                setSubscription('1y', 12);
+                                                setRedeeming(false);
+                                                setShowRedeemModal(false);
+                                                setRedeemCode("");
+                                                alert(language === 'es' ? '¡Código FUNDADOR activado! Tienes 1 año de Early Access.' : 'FOUNDER code activated! You have 1 year of Early Access.');
                                             }, 1000);
                                         } else {
                                             alert(t('wallet_code_invalid'));
