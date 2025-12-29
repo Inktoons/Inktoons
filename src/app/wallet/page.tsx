@@ -103,6 +103,18 @@ export default function WalletPage() {
             tag: 'PREMIUM',
             color: 'bg-gradient-to-br from-amber-50 to-orange-50 border-orange-200',
             iconColor: 'text-amber-500'
+        },
+        {
+            id: 'pass_test',
+            duration: language === 'es' ? '24 Horas' : '24 Hours',
+            durationTime: 0.033, // ~1 day
+            priceUsd: 0.00, // Not used
+            pricePi: 0.01,
+            label: language === 'es' ? 'Pase de Prueba' : 'Test Pass',
+            features: [language === 'es' ? 'Acceso de prueba' : 'Test access', language === 'es' ? 'Válido por 1 día' : 'Valid for 1 day'],
+            tag: 'TEST',
+            color: 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200',
+            iconColor: 'text-emerald-500'
         }
     ];
 
@@ -164,7 +176,7 @@ export default function WalletPage() {
             return;
         }
 
-        const piCost = Number(calculatePiPrice(pass.priceUsd));
+        const piCost = (pass as any).pricePi || Number(calculatePiPrice(pass.priceUsd));
 
         setLoadingPass(pass.id);
 
@@ -346,9 +358,9 @@ export default function WalletPage() {
                                     </div>
                                     <div className="flex flex-col items-end">
                                         <span className="text-lg font-black text-gray-900">
-                                            {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>}
+                                            {(pass as any).pricePi ? `${(pass as any).pricePi} Pi` : (typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>)}
                                         </span>
-                                        <span className="text-[10px] font-bold text-gray-400">(${pass.priceUsd.toFixed(2)})</span>
+                                        {!(pass as any).pricePi && <span className="text-[10px] font-bold text-gray-400">(${pass.priceUsd.toFixed(2)})</span>}
                                     </div>
                                 </div>
 
