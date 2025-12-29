@@ -16,11 +16,17 @@ Valor: 1bak6gsn4dcir2z5lmrvnyuug29nni
 
 #### 2. **PI_API_KEY**
 ```
-Valor: 1bak6gsn4dcir2z5lmrvnyuug29nni
+Valor: gw46unoklkzp0ep9noq5bvc1ujgph4dmocgklxroabpkxcyvs4gf7exvrs9d0uzk
 ```
 *(Mismo valor que NEXT_PUBLIC_PI_API_KEY)*
 
-#### 3. **NEXT_PUBLIC_SUPABASE_URL**
+#### 3. **PI_WALLET_ADDRESS**
+```
+Valor: GBGUEWWORJKNDRIH5LY7BGU4CCTI2GSCNWZBJKNETQTVNRFA343MKPO2
+```
+*(Dirección de billetera de Mainnet para recibir pagos)*
+
+#### 4. **NEXT_PUBLIC_SUPABASE_URL**
 ```
 Valor: https://xxxxxxxxxxxxx.supabase.co
 ```
