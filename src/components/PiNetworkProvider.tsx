@@ -75,15 +75,95 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         return () => clearTimeout(timer);
     }, [authenticate]);
 
-    // MODO DEMO: Simula el pago instantáneamente sin abrir la wallet
+    // PAGOS REALES de Pi Network
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
-        console.log(`[DEMO MODE] Pago simulado por: ${amount} Pi (${memo})`);
+        if (!window.Pi) {
+            alert("SDK de Pi no disponible. Debes abrir esta app en Pi Browser.");
+            return;
+        }
 
-        // Simulamos una pequeña espera de "procesamiento" para que se sienta real
-        if (onSuccess) {
-            setTimeout(() => {
-                onSuccess();
-            }, 800);
+        if (!user) {
+            alert("Debes iniciar sesión primero");
+            return;
+        }
+
+        try {
+            console.log(`[Pi Payment] Iniciando pago de ${amount} Pi para: ${memo}`);
+
+            // Crear el pago usando el SDK de Pi
+            const payment = await window.Pi.createPayment({
+                amount,
+                memo,
+                metadata
+            }, {
+                // Callbacks del SDK
+                onReadyForServerApproval: async (paymentId: string) => {
+                    console.log(`[Pi Payment] Aprobando en servidor: ${paymentId}`);
+
+                    try {
+                        // Llamar a nuestra API para aprobar el pago
+                        const response = await fetch('/api/pi/approve', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ paymentId }),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Error al aprobar el pago en el servidor');
+                        }
+
+                        const data = await response.json();
+                        console.log('[Pi Payment] Aprobado por el servidor:', data);
+                    } catch (error) {
+                        console.error('[Pi Payment] Error en aprobación del servidor:', error);
+                        throw error;
+                    }
+                },
+                onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+                    console.log(`[Pi Payment] Completando en servidor: ${paymentId}, txid: ${txid}`);
+
+                    try {
+                        // Llamar a nuestra API para completar el pago
+                        const response = await fetch('/api/pi/complete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ paymentId, txid }),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Error al completar el pago en el servidor');
+                        }
+
+                        const data = await response.json();
+                        console.log('[Pi Payment] Completado por el servidor:', data);
+
+                        // Ejecutar callback de éxito
+                        if (onSuccess) {
+                            onSuccess();
+                        }
+                    } catch (error) {
+                        console.error('[Pi Payment] Error en completación del servidor:', error);
+                        throw error;
+                    }
+                },
+                onCancel: (paymentId: string) => {
+                    console.log(`[Pi Payment] Pago cancelado: ${paymentId}`);
+                    alert('Pago cancelado');
+                },
+                onError: (error: any, payment: any) => {
+                    console.error('[Pi Payment] Error:', error);
+                    alert('Error en el pago: ' + (error.message || 'Desconocido'));
+                }
+            });
+
+            console.log('[Pi Payment] Pago creado exitosamente:', payment);
+        } catch (error: any) {
+            console.error('[Pi Payment] Error al crear el pago:', error);
+            alert('Error al procesar el pago: ' + (error.message || 'Desconocido'));
         }
     };
 

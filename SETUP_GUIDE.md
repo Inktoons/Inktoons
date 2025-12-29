@@ -195,6 +195,25 @@ Abre [http://localhost:3000](http://localhost:3000) y verifica que:
 3. En **"App Hosting"**, pega tu URL de Vercel: `https://inktoons.vercel.app`
 4. Guarda los cambios
 
+### ⚠️ IMPORTANTE: Production vs Preview
+
+**Los pagos de Pi Network SOLO funcionan en Production Deployment**, NO en Preview Deployments.
+
+**¿Por qué?**
+- **Production**: URL estática (`inktoons.vercel.app`) que puedes registrar en Pi Developer Portal
+- **Preview**: URL dinámica (`inktoons-git-rama.vercel.app`) que cambia con cada commit
+
+**✅ Usa Production para:**
+- Probar pagos reales de Pi Network
+- Registrar en Pi Developer Portal
+- Testing con Pi Browser
+
+**❌ NO uses Preview para:**
+- Pagos de Pi (no funcionará)
+- Registro en Pi Portal
+
+📖 **Para más detalles**, consulta: `PI_NETWORK_VERCEL_SETUP.md`
+
 ---
 
 ## 🎯 Resumen de Costos
