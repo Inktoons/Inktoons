@@ -681,13 +681,17 @@ export default function WalletPage() {
                                     {language === 'es' ? 'Introduce tu código promocional para activar beneficios exclusivos.' : 'Enter your promo code to activate exclusive benefits.'}
                                 </p>
 
-                                <div className="mb-8">
+                                <div className="mb-8 relative z-[120]">
                                     <input
                                         type="text"
+                                        autoFocus
                                         value={redeemCode}
                                         onChange={(e) => setRedeemCode(e.target.value)}
                                         placeholder={t('wallet_code_placeholder')}
-                                        className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-6 py-4 font-bold text-lg focus:border-pi-purple focus:bg-white outline-none transition-all uppercase"
+                                        className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-6 py-4 font-bold text-lg focus:border-pi-purple focus:bg-white outline-none transition-all uppercase pointer-events-auto relative z-[130]"
+                                        autoComplete="off"
+                                        autoCorrect="off"
+                                        spellCheck="false"
                                     />
                                 </div>
 
