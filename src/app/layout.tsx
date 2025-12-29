@@ -33,7 +33,6 @@ export default function RootLayout({
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased`}>
         <Providers>
           {children}
-          <DevControlPanel />
         </Providers>
       </body>
     </html>

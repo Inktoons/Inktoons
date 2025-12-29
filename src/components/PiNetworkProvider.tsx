@@ -13,7 +13,6 @@ interface PiContextType {
     loading: boolean;
     authenticate: () => Promise<void>;
     createPayment: (amount: number, memo: string, metadata: any, onSuccess?: () => void) => Promise<void>;
-    setMockUser: (user: PiUser | null) => void;
 }
 
 const PiContext = createContext<PiContextType | undefined>(undefined);
@@ -49,20 +48,15 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
     useEffect(() => {
         const init = async () => {
-            // Soporte para Mock User en desarrollo
-            if (process.env.NODE_ENV === 'development') {
-                const mockUser = localStorage.getItem("dev_mock_user");
-                if (mockUser) {
-                    try {
-                        setUser(JSON.parse(mockUser));
-                    } catch (e) { }
-                }
-            }
-
             if (window.Pi && !initialized.current) {
                 try {
-                    // Inicializamos en modo MAINNET (producción con Pi real)
-                    await window.Pi.init({ version: "2.0", sandbox: false });
+                    // El valor depende de la variable de entorno NEXT_PUBLIC_PI_SANDBOX
+                    // Si no está definida, por defecto es true (Testnet) por seguridad
+                    const isSandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== "false";
+
+                    console.log(`[Pi SDK] Inicializando en modo: ${isSandbox ? 'TESTNET (Sandbox)' : 'MAINNET'}`);
+
+                    await window.Pi.init({ version: "2.0", sandbox: isSandbox });
                     initialized.current = true;
                     if (localStorage.getItem("pi_logged_in") === "true") {
                         await authenticate(true);
@@ -167,20 +161,8 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         }
     };
 
-    const setMockUser = useCallback((mockUser: PiUser | null) => {
-        if (process.env.NODE_ENV !== 'development') return;
-
-        if (mockUser) {
-            setUser(mockUser);
-            localStorage.setItem("dev_mock_user", JSON.stringify(mockUser));
-        } else {
-            setUser(null);
-            localStorage.removeItem("dev_mock_user");
-        }
-    }, []);
-
     return (
-        <PiContext.Provider value={{ user, loading, authenticate, createPayment, setMockUser }}>
+        <PiContext.Provider value={{ user, loading, authenticate, createPayment }}>
             {children}
         </PiContext.Provider>
     );
