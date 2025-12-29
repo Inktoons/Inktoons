@@ -61,8 +61,8 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
             if (window.Pi && !initialized.current) {
                 try {
-                    // Inicializamos en modo TESTNET (sandbox) para pruebas
-                    await window.Pi.init({ version: "2.0", sandbox: true });
+                    // Inicializamos en modo MAINNET (producción con Pi real)
+                    await window.Pi.init({ version: "2.0", sandbox: false });
                     initialized.current = true;
                     if (localStorage.getItem("pi_logged_in") === "true") {
                         await authenticate(true);
