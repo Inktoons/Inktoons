@@ -310,11 +310,10 @@ export default function WalletPage() {
                     </div>
                 </div>
 
-                {/* Early Access Pass - DISABLED */}
-                <h2 className="font-black text-lg mb-4 flex items-center gap-2 opacity-50">
+                {/* Early Access Pass - ENABLED */}
+                <h2 className="font-black text-lg mb-4 flex items-center gap-2">
                     <Crown className="text-amber-500 ml-1" size={24} fill="currentColor" />
                     Early Access Pass
-                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-auto uppercase font-black tracking-tighter">Mantenimiento</span>
                 </h2>
 
                 <div className="space-y-4 mb-10">
@@ -323,11 +322,11 @@ export default function WalletPage() {
                         return (
                             <motion.button
                                 key={pass.id}
-                                whileHover={{ scale: 1 }}
-                                whileTap={{ scale: 1 }}
-                                onClick={() => { }} // Disabled
-                                disabled={true}
-                                className={`w-full relative ${pass.color} border-2 p-5 rounded-2xl flex flex-col items-start text-left transition-all group disabled:opacity-70 disabled:grayscale`}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handlePassPurchase(pass)}
+                                disabled={loadingPass === pass.id || !currentPiValue}
+                                className={`w-full relative ${pass.color} border-2 p-5 rounded-2xl flex flex-col items-start text-left transition-all group hover:shadow-lg disabled:opacity-50`}
                             >
                                 {pass.tag && (
                                     <span className="absolute -top-3 right-6 bg-black text-white text-[10px] font-black px-2 py-1 rounded-md shadow-sm">
@@ -375,11 +374,10 @@ export default function WalletPage() {
                     })}
                 </div>
 
-                {/* Packages - DISABLED */}
-                <h2 className="font-black text-lg mb-4 flex items-center gap-2 opacity-50">
-                    <img src="/icon.png" alt="Inks" className="w-[22px] h-[22px] object-contain ml-1 grayscale" />
+                {/* Packages - ENABLED */}
+                <h2 className="font-black text-lg mb-4 flex items-center gap-2">
+                    <img src="/icon.png" alt="Inks" className="w-[22px] h-[22px] object-contain ml-1" />
                     {t('wallet_recharge')}
-                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-auto uppercase font-black tracking-tighter">Mantenimiento</span>
                 </h2>
 
                 <div className="space-y-4">
@@ -388,11 +386,11 @@ export default function WalletPage() {
                         return (
                             <motion.button
                                 key={pack.id}
-                                whileHover={{ scale: 1 }}
-                                whileTap={{ scale: 1 }}
-                                onClick={() => { }} // Disabled
-                                disabled={true}
-                                className={`w-full relative ${pack.color} border-2 p-5 rounded-2xl flex items-center justify-between text-left transition-all group disabled:opacity-70 disabled:grayscale`}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handlePurchase(pack)}
+                                disabled={loadingPack === pack.id || !currentPiValue}
+                                className={`w-full relative ${pack.color} border-2 p-5 rounded-2xl flex items-center justify-between text-left transition-all group hover:shadow-lg disabled:opacity-50`}
                             >
                                 {pack.tag && (
                                     <span className="absolute -top-3 left-6 bg-black text-white text-[10px] font-black px-2 py-1 rounded-md shadow-sm">
